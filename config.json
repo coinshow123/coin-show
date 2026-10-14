@@ -1,0 +1,20 @@
+{
+  "siteName": "Bourse Board",
+  "tagline": "Every U.S. coin show, in one list",
+  "siteUrl": "https://www.bourseboard.com",
+  "customDomain": "",
+  "sheetCsvUrl": "",
+  "dealersCsvUrl": "",
+  "submitFormUrl": "",
+  "contactEmail": "hello@bourseboard.com",
+  "operator": "C&C Numismatics LLC",
+  "emailSignupUrl": "",
+  "sponsor": {
+    "name": "C&C Numismatics",
+    "line": "Fair offers from C&C Numismatics",
+    "url": "https://collectiblescurrency.com"
+  },
+  "featuredPrice": "",
+  "googleAnalyticsId": "",
+  "timeZone": "America/Los_Angeles"
+}
