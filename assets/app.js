@@ -47,6 +47,14 @@
     el.textContent = days <= 0 ? 'Happening now' : days === 1 ? 'Tomorrow' : days < 45 ? 'In ' + days + ' days' : 'In about ' + Math.round(days / 30) + ' months';
   });
 
+  /* ----- whole list row opens the show ----- */
+  document.addEventListener('click', function (e) {
+    var tr = e.target.closest && e.target.closest('table.shows tbody tr');
+    if (!tr || e.target.closest('a,button,input,select')) return;
+    var a = tr.querySelector('.c-name a');
+    if (a) location.href = a.href;
+  });
+
   /* ----- state picker ----- */
   document.querySelectorAll('select[data-nav]').forEach(function (s) {
     s.addEventListener('change', function () { if (s.value) location.href = s.value; });
@@ -85,7 +93,11 @@
       }
       if (pager) {
         pager.innerHTML = '';
-        if (pages > 1) {
+        if (pages > 1 && window.matchMedia('(max-width:760px)').matches) {
+          if (page > 1) pager.appendChild(btn('Previous', 'pg-prev', page - 1));
+          var info = document.createElement('span'); info.className = 'pg-info'; info.textContent = 'Page ' + page + ' of ' + pages; pager.appendChild(info);
+          if (page < pages) pager.appendChild(btn('Next', 'pg-next', page + 1));
+        } else if (pages > 1) {
           if (page > 1) pager.appendChild(btn('Previous', 'pg-prev', page - 1));
           for (var i = 1; i <= pages; i++) {
             var b = btn(String(i), '', i);
@@ -154,11 +166,16 @@
     var r = Math.PI / 180, h = Math.pow(Math.sin((c - a) * r / 2), 2) + Math.cos(a * r) * Math.cos(c * r) * Math.pow(Math.sin((d - b) * r / 2), 2);
     return 3959 * 2 * Math.asin(Math.sqrt(h));
   }
+  var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], W = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   function fmtDate(s, e) {
-    var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], W = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    var a = new Date(s + 'T00:00:00'), b = new Date(e + 'T00:00:00');
-    if (s === e) return [M[a.getMonth()] + ' ' + a.getDate() + ', ' + a.getFullYear(), W[a.getDay()]];
-    return [M[a.getMonth()] + ' ' + a.getDate() + '–' + (a.getMonth() === b.getMonth() ? '' : M[b.getMonth()] + ' ') + b.getDate() + ', ' + b.getFullYear(), W[a.getDay()] + '–' + W[b.getDay()]];
+    var a = new Date(s + 'T00:00:00'), b = new Date(e + 'T00:00:00'), yr = now.getFullYear();
+    var y = a.getFullYear() === yr && b.getFullYear() === yr ? '' : ', ' + b.getFullYear();
+    var same = a.getMonth() === b.getMonth();
+    var date = s === e ? M[a.getMonth()] + ' ' + a.getDate() + y : M[a.getMonth()] + ' ' + a.getDate() + '–' + (same ? '' : M[b.getMonth()] + ' ') + b.getDate() + y;
+    var dow = s === e ? W[a.getDay()] : W[a.getDay()] + '–' + W[b.getDay()];
+    var tm = same ? M[a.getMonth()] : M[a.getMonth()] + '–' + M[b.getMonth()];
+    var td = s === e ? String(a.getDate()) : a.getDate() + '–' + b.getDate();
+    return [date, dow, tm.toUpperCase(), td];
   }
   function fail(msg) { errEl.textContent = msg; errEl.hidden = false; }
   function run(lat, lon, what) {
@@ -180,8 +197,8 @@
     }
     var rows = lastHits.slice(0, limit).map(function (o) {
       var f = fmtDate(o.s.s, o.s.e);
-      return '<tr><td class="c-date"><span class="d">' + esc(f[0]) + '</span><span class="dow">' + esc(f[1]) + '</span></td>' +
-        '<td class="c-mi">' + Math.round(o.mi) + '</td>' +
+      return '<tr><td class="c-date"><span class="d">' + esc(f[0]) + '</span><span class="dow">' + esc(f[1]) + '</span><span class="dtile" aria-hidden="true"><span class="tm">' + esc(f[2]) + '</span><span class="td">' + esc(f[3]) + '</span><span class="tw">' + esc(f[1]) + '</span></span></td>' +
+        '<td class="c-mi">' + Math.round(o.mi) + ' mi</td>' +
         '<td class="c-name"><a href="' + esc(link(o.s.p)) + '">' + esc(o.s.n) + '</a><span class="sub">' + esc(o.s.c) + ', ' + esc(o.s.st) + (o.s.v ? ' · ' + esc(o.s.v) : '') + '</span></td></tr>';
     }).join('');
     out.innerHTML = '<p>' + esc(label) + '</p><div class="table-wrap"><table class="shows"><thead><tr><th scope="col" class="c-date">Date</th><th scope="col" class="c-mi">Miles</th><th scope="col">Name of the coin show</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
@@ -216,5 +233,24 @@
         fail('Your location is not available. Type your ZIP code instead.');
       }, { timeout: 10000, maximumAge: 600000 });
     });
+  }
+  /* ----- home banner ZIP box: runs the near-me search below ----- */
+  var hf = document.getElementById('hero-form');
+  if (hf) {
+    var hz = document.getElementById('hero-zip'), he = document.getElementById('hero-err'), hg = document.getElementById('hero-gps');
+    if (saved && /^\d{5}$/.test(saved)) hz.value = saved;
+    hz.addEventListener('input', function () { hz.value = hz.value.replace(/\D/g, '').slice(0, 5); he.hidden = true; });
+    var goNear = function () { var sec = document.getElementById('near'); if (sec) sec.scrollIntoView({ block: 'start' }); };
+    hf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!/^\d{5}$/.test(hz.value)) { he.textContent = 'Enter a 5-digit ZIP code.'; he.hidden = false; hz.focus(); return; }
+      zipIn.value = hz.value;
+      if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true }));
+      goNear();
+    });
+    if (hg) {
+      if (!('geolocation' in navigator)) hg.hidden = true;
+      hg.addEventListener('click', function () { if (gps) { gps.click(); goNear(); } });
+    }
   }
 })();

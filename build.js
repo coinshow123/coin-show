@@ -182,7 +182,7 @@ function cleanShows(rows) {
       id: (r.show_id || '').trim().toUpperCase(), tables: r.dealer_tables, parking: r.parking,
       specialties: splitList(r.specialties), auction: r.auction, grading: r.grading,
       appraisals: yes(r.appraisals), exhibits: yes(r.exhibits), kids: yes(r.kids), prizes: yes(r.door_prizes), talks: yes(r.talks),
-      hotel: r.hotel, description: r.description, photos: splitList(r.photos), dealers: [],
+      hotel: r.hotel, description: r.description, photos: splitList(r.photos), photoCredit: r.photo_credit, dealers: [],
       la: Math.round(la * 1000) / 1000, lo: Math.round(lo * 1000) / 1000, slug, path: `show/${slug}/`
     });
   }
@@ -205,13 +205,23 @@ function linker(depth) {
 const TIER_LABEL = { major: 'National', regional: 'State / regional', local: 'Local club', dealer: 'Dealers only' };
 const isFree = s => /free/i.test(s.admission || '');
 
+function shortDate(s) {
+  const f = fmt(s), y = String(D(todayISO).getUTCFullYear());
+  return s.start.slice(0, 4) === y && s.end.slice(0, 4) === y ? f.date.replace(/, \d{4}$/, '') : f.date;
+}
+function dateTile(s) {
+  const a = D(s.start), b = D(s.end), f = fmt(s);
+  const m = a.getUTCMonth() === b.getUTCMonth() ? MON[a.getUTCMonth()] : MON[a.getUTCMonth()] + '–' + MON[b.getUTCMonth()];
+  const d = s.start === s.end ? String(a.getUTCDate()) : a.getUTCDate() + '–' + b.getUTCDate();
+  return `<span class="dtile" aria-hidden="true"><span class="tm">${m.toUpperCase()}</span><span class="td">${d}</span><span class="tw">${f.dow}</span></span>`;
+}
 function showRow(s, h) {
   const f = fmt(s);
-  const badges = (s.featured ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '');
+  const badges = (s.featured ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '') + (s.tier === 'major' ? '<span class="tag tag-major">National</span>' : '');
   return `<tr data-s="${s.start}" data-e="${s.end}"${s.tier === 'major' ? ' class="is-major"' : ''}>
-<td class="c-date"><span class="d">${esc(f.date)}</span><span class="dow">${esc(f.dow)}</span></td>
+<td class="c-date"><span class="d">${esc(shortDate(s))}</span><span class="dow">${esc(f.dow)}</span>${dateTile(s)}</td>
 <td class="c-st">${s.st}</td>
-<td class="c-name"><a href="${h(s.path)}">${esc(s.name)}</a>${badges}<span class="sub">${esc(s.city)}${s.venue ? ' · ' + esc(s.venue) : ''}</span></td>
+<td class="c-name"><a href="${h(s.path)}">${esc(s.name)}</a>${badges}<span class="sub">${esc(s.city)}<span class="st-in">, ${s.st}</span>${s.venue ? ' · ' + esc(s.venue) : ''}</span></td>
 </tr>`;
 }
 
@@ -250,12 +260,129 @@ function nearSection() {
 </section>`;
 }
 
+/* ---------- home banner: engraved banknote pattern, gold coin, tagline, ZIP finder ---------- */
+const LOGO = '<svg class="logo-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="22" r="16" fill="var(--wine)"/><circle cx="20" cy="22" r="12" fill="none" stroke="var(--cream)" stroke-width="1.2" stroke-dasharray="1.6 1.6"/><rect x="11" y="3" width="3.5" height="9" rx="1.7" fill="var(--brass)"/><rect x="25.5" y="3" width="3.5" height="9" rx="1.7" fill="var(--brass)"/><text x="20" y="27.5" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#fff">C</text></svg>';
+function guillocheSVG() {
+  const ring = (cx, cy, R, amp, n, lobes, sx, sy, cls, op) => {
+    let out = '';
+    for (let k = 0; k < n; k++) {
+      let d = '';
+      for (let i = 0; i < 96; i++) {
+        const a = i / 96 * Math.PI * 2, r = R + amp * Math.cos(lobes * a + k * 0.27);
+        d += (i ? 'L' : 'M') + Math.round(cx + Math.cos(a) * r * sx) + ' ' + Math.round(cy + Math.sin(a) * r * sy);
+      }
+      out += `<path d="${d}Z"/>`;
+    }
+    return `<g class="${cls}" stroke-opacity="${op}">${out}</g>`;
+  };
+  return `<svg class="hero-art" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+<g fill="none" stroke="var(--wine)" stroke-width="1.1">
+${ring(980, 210, 180, 12, 9, 11, 1.25, 1, 'gu-spin', .16)}
+${ring(980, 210, 122, 9, 7, 9, 1.25, 1, 'gu-spin-rev', .2)}
+${ring(980, 210, 66, 6, 5, 7, 1.25, 1, 'gu-spin', .24)}
+</g>
+<g fill="none" stroke="var(--brass)" stroke-width="1">${ring(140, 380, 170, 12, 6, 13, 1.4, 1, 'gu-spin-rev', .28)}</g>
+</svg>`;
+}
+function coinSVG() {
+  let reed = '';
+  for (let i = 0; i < 120; i++) {
+    const a = i / 120 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+    reed += `M${(100 + c * 91).toFixed(1)} ${(100 + s * 91).toFixed(1)}L${(100 + c * 99).toFixed(1)} ${(100 + s * 99).toFixed(1)}`;
+  }
+  let stars = '';
+  for (let j = 0; j < 13; j++) { const a = Math.PI * (0.18 + j * 0.0533); stars += `<circle cx="${(100 + Math.cos(a) * 70).toFixed(1)}" cy="${(100 + Math.sin(a) * 70).toFixed(1)}" r="2.3"/>`; }
+  return `<svg class="hero-coin" viewBox="0 0 220 220" role="img" aria-label="Coin Calendar coin">
+<defs><clipPath id="coin-clip"><circle cx="100" cy="100" r="99"/></clipPath><path id="coin-arc" d="M38 104 A62 62 0 0 1 162 104"/></defs>
+<circle cx="110" cy="112" r="99" fill="var(--ink)" opacity=".18"/>
+<circle cx="100" cy="100" r="99" fill="#B8933F"/>
+<path d="${reed}" stroke="#7A5C1C" stroke-width="2.2"/>
+<circle cx="100" cy="100" r="87" fill="#D9B867"/>
+<circle cx="100" cy="100" r="84" fill="none" stroke="#A07E33" stroke-width="2.4"/>
+<g fill="#8A6A24">${stars}</g>
+<text font-family="Georgia,serif" font-size="13" font-weight="700" fill="#6E520F" letter-spacing="3"><textPath href="#coin-arc" startOffset="50%" text-anchor="middle">COIN CALENDAR</textPath></text>
+<text x="100" y="118" text-anchor="middle" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#6E520F">CC</text>
+<g clip-path="url(#coin-clip)"><rect class="coin-shine" x="-60" y="-20" width="34" height="240" fill="#fff" opacity=".38"/></g>
+</svg>`;
+}
+function heroSection(h) {
+  const { counts, upcoming } = SITEDATA;
+  const next = upcoming.find(s => s.tier === 'major');
+  const days = next ? Math.round((D(next.start) - D(todayISO)) / 864e5) : 0;
+  const when = days <= 0 ? 'Happening now' : days === 1 ? 'Tomorrow' : days < 45 ? `In ${days} days` : `In about ${Math.round(days / 30)} months`;
+  const words = NAME.split(' ');
+  return `<section class="hero" aria-labelledby="h-hero">
+${guillocheSVG()}
+<div class="hero-coin-wrap">${coinSVG()}</div>
+<div class="hero-text">
+<p class="eyebrow">Updated daily · ${upcoming.length} shows in ${Object.keys(counts).length} states</p>
+<h1 id="h-hero" class="hero-brand"><b>${esc(words[0])}</b> ${esc(words.slice(1).join(' '))}</h1>
+<span class="hero-rule" aria-hidden="true"></span>
+<p class="hero-tag">${esc(config.tagline || '')}</p>
+<form id="hero-form" class="hero-form" novalidate>
+<label for="hero-zip" class="hero-label">Find a coin show near you</label>
+<div class="hero-row">
+<input id="hero-zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="Your ZIP code">
+<button class="btn btn-primary" type="submit">Find shows</button>
+</div>
+</form>
+<button type="button" class="linkish" id="hero-gps">Or use my location</button>
+<p class="err" id="hero-err" role="alert" hidden></p>
+${next ? `<p class="hero-next">Next major show: <a href="${h(next.path)}">${esc(next.name)}</a> · ${esc(fmt(next).date)} · <span data-countdown="${next.start}">${when}</span></p>` : ''}
+</div>
+</section>`;
+}
+
+/* ---------- cover pictures ----------
+   Every show gets a banknote-style cover drawn automatically.
+   If the sheet has a photo for the show, the first photo is used instead. */
+const COVER_COLORS = config.coverColors || [
+  { bg: '#1C5B45', line: '#D9B867', text: '#FFFFFF', sub: '#E8D9A8' },
+  { bg: '#14231D', line: '#B8933F', text: '#FFFFFF', sub: '#E8D9A8' },
+  { bg: '#234A3E', line: '#C9B27A', text: '#FFFFFF', sub: '#E6D9B5' },
+  { bg: '#3B2E1A', line: '#D9B867', text: '#FFFFFF', sub: '#E8D9A8' }
+];
+const MAJOR_COVER = config.majorCoverColors || { bg: '#14231D', line: '#D9B867', text: '#FFFFFF', sub: '#D9B867' };
+const hashStr = str => { let x = 2166136261; for (const ch of str) { x ^= ch.charCodeAt(0); x = Math.imul(x, 16777619); } return x >>> 0; };
+const xml = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function coverSVG(s) {
+  const W = 640, H = 360, hv = hashStr(s.slug), pal = s.tier === 'major' ? MAJOR_COVER : COVER_COLORS[hv % COVER_COLORS.length];
+  const lobes = 7 + (hv % 6), cx = 505, cy = H / 2;
+  let paths = '';
+  [[128, 10, 6, .55], [92, 7, 5, .45], [56, 5, 4, .35]].forEach(([R, amp, n, op], ri) => {
+    for (let k = 0; k < n; k++) {
+      let d = '';
+      for (let i = 0; i < 84; i++) {
+        const a = i / 84 * Math.PI * 2, rad = R + amp * Math.cos(lobes * a + k * 0.32 + ri);
+        d += (i ? 'L' : 'M') + Math.round(cx + Math.cos(a) * rad * 1.15) + ' ' + Math.round(cy + Math.sin(a) * rad * 0.95);
+      }
+      paths += `<path d="${d}Z" stroke="${pal.line}" stroke-opacity="${op}"/>`;
+    }
+  });
+  const city = s.city.toUpperCase(), size = city.length <= 9 ? 54 : city.length <= 14 ? 42 : city.length <= 20 ? 32 : 26;
+  const f = fmt(s);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${xml(s.name)}">
+<rect width="${W}" height="${H}" fill="${pal.bg}"/>
+<g fill="none" stroke-width="1.1">${paths}</g>
+<rect x="12" y="12" width="${W - 24}" height="${H - 24}" fill="none" stroke="${pal.line}" stroke-opacity=".7" stroke-width="1.5"/>
+<rect x="19" y="19" width="${W - 38}" height="${H - 38}" fill="none" stroke="${pal.line}" stroke-opacity=".35"/>
+<g font-family="Georgia, 'Times New Roman', serif">
+<text x="40" y="70" fill="${pal.sub}" font-size="15" letter-spacing="3">${xml(s.tier === 'major' ? 'NATIONAL COIN SHOW' : s.tier === 'regional' ? 'STATE & REGIONAL SHOW' : s.tier === 'dealer' ? 'DEALERS ONLY' : 'COIN SHOW')}</text>
+<text x="38" y="${170 + (54 - size) / 2}" fill="${pal.text}" font-size="${size}" font-weight="700" letter-spacing="1">${xml(city)}</text>
+<text x="40" y="${214}" fill="${pal.text}" font-size="22" opacity=".9">${xml(STATES[s.st])}</text>
+<line x1="40" y1="246" x2="110" y2="246" stroke="${pal.line}" stroke-width="2"/>
+<text x="40" y="290" fill="${pal.sub}" font-size="24" font-weight="700">${xml(f.date)}</text>
+</g>
+</svg>`;
+}
+const coverSrc = (s, h) => s.photos.length ? (/^https?:\/\//i.test(s.photos[0]) ? s.photos[0] : h('photos/' + s.photos[0].replace(/^\/+/, ''))) : h('covers/' + s.slug + '.svg');
+
 function majorSlider(majors, h) {
   if (!majors.length) return '';
   const cards = majors.map(s => {
     const days = Math.round((D(s.start) - D(todayISO)) / 864e5);
     const when = days <= 0 ? 'Happening now' : days < 45 ? `In ${days} days` : `In about ${Math.round(days / 30)} months`;
-    return `<li class="mcard"><a href="${h(s.path)}"><span class="m-date">${esc(fmt(s).date)}</span><span class="m-name">${esc(s.name)}</span><span class="m-place">${esc(s.city)}, ${STATES[s.st]}</span><span class="m-when" data-countdown="${s.start}">${when}</span></a></li>`;
+    return `<li class="mcard"><a href="${h(s.path)}"><img class="m-img" src="${esc(coverSrc(s, h))}" alt="" width="640" height="360" loading="lazy"><span class="m-body"><span class="m-date">${esc(fmt(s).date)}</span><span class="m-name">${esc(s.name)}</span><span class="m-place">${esc(s.city)}, ${STATES[s.st]}</span><span class="m-when" data-countdown="${s.start}">${when}</span></span></a></li>`;
   }).join('\n');
   return `<section id="major" class="block" aria-labelledby="h-major">
 <div class="block-head">
@@ -280,7 +407,7 @@ function listBox(h) {
 /* ---------- layout ---------- */
 let SITEDATA; // filled in main()
 
-function page({ p, title, desc, active, body, jsonld, noindex, near }) {
+function page({ p, title, desc, active, body, jsonld, noindex, near, image }) {
   const depth = p ? p.split('/').filter(Boolean).length : 0;
   const h = linker(depth);
   const { counts, upcoming, weekendCount, majorCount } = SITEDATA;
@@ -302,11 +429,12 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(canonical)}">
+${image ? `<meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image">` : ''}
 <meta name="theme-color" content="#1F1A1B">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%236E1C27'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%23F0D9A8' stroke-width='1.5'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='Georgia' font-size='14' font-weight='700' fill='%23fff'%3EB%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='22' r='16' fill='%236E1C27'/%3E%3Crect x='11' y='3' width='3.5' height='9' rx='1.7' fill='%23B08A3E'/%3E%3Crect x='25.5' y='3' width='3.5' height='9' rx='1.7' fill='%23B08A3E'/%3E%3Ctext x='20' y='28' text-anchor='middle' font-family='Georgia' font-size='15' font-weight='700' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Lexend:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <link rel="stylesheet" href="${h('assets/style.css')}">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 ${ga}
@@ -315,7 +443,7 @@ ${ga}
 <a class="skip" href="#content">Skip to main content</a>
 <header class="top">
 <div class="wrap top-in">
-<a class="logo" href="${h('')}">${esc(NAME)}</a>
+<a class="logo" href="${h('')}" aria-label="${esc(NAME)} home">${LOGO}<span><b>${esc(NAME.split(' ')[0])}</b> ${esc(NAME.split(' ').slice(1).join(' '))}</span></a>
 <span class="top-note">${upcoming.length} upcoming coin shows in ${Object.keys(counts).length} states</span>
 <a class="top-cta" href="${h('submit/')}">List your show</a>
 </div>
@@ -388,7 +516,8 @@ function buildPages(shows) {
   page({ p: '', active: 'home', near: true, title: `${NAME}: Coin Shows Near You, ${years} Calendar`,
     desc: `Find coin shows near you. ${upcoming.length} upcoming U.S. coin, currency and bullion shows in ${Object.keys(counts).length} states, from FUN and ANA to local club shows.`,
     jsonld: { '@context': 'https://schema.org', '@type': 'WebSite', name: NAME, url: SITE + '/' },
-    body: h => `${majorSlider(majors.slice(0, 10), h)}
+    body: h => `${heroSection(h)}
+${majorSlider(majors.slice(0, 10), h)}
 ${featuredStrip(feat, h)}
 ${listSection(upcoming, h, { title: 'All coin shows', counts, empty: 'No upcoming shows are listed yet.' })}
 ${nearSection()}
@@ -471,9 +600,12 @@ ${listBox(h)}` });
     page({ p: s.path, active: 'st:' + s.st, title: `${s.name}, ${f.date} | ${s.city}, ${s.st} Coin Show`,
       desc: `${s.name}: ${f.date} in ${s.city}, ${n}${s.venue ? ' at ' + s.venue : ''}. Hours, admission, parking, dealers, directions and add-to-calendar.`,
       jsonld: ld,
+      image: s.photos.length ? (/^https?:/i.test(s.photos[0]) ? s.photos[0] : `${SITE}/photos/${s.photos[0]}`) : '',
       body: h => `<article class="show">
 <p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('state/' + stateSlug(s.st) + '/')}">${n}</a> › ${esc(s.name)}</p>
 <div class="show-head">
+<figure class="show-cover"><img src="${esc(coverSrc(s, h))}" alt="${s.photos.length ? esc(s.name) + ' photo' : ''}" width="640" height="360">${s.photos.length && s.photoCredit ? `<figcaption>Photo: ${esc(s.photoCredit)}</figcaption>` : ''}</figure>
+<div class="show-text">
 <div class="tags"><span class="tag tag-${s.tier}">${TIER_LABEL[s.tier]}</span>${s.featured ? '<span class="tag tag-feat">Featured</span>' : ''}${isFree(s) ? '<span class="tag tag-free">Free admission</span>' : ''}</div>
 <h1>${esc(s.name)}</h1>
 <p class="show-date">${esc(f.long)}</p>
@@ -483,6 +615,7 @@ ${listBox(h)}` });
 <a class="btn btn-outline-light" href="event.ics" download="${esc(s.slug)}.ics">Apple or Outlook calendar</a>
 <a class="btn btn-outline-light" href="${esc(dir)}" target="_blank" rel="noopener">Get directions</a>
 ${s.website ? `<a class="btn btn-outline-light" href="${esc(s.website)}" target="_blank" rel="noopener">Official website</a>` : ''}
+</div>
 </div>
 </div>
 <ul class="facts" aria-label="Quick facts">${facts.map(x => `<li>${x}</li>`).join('')}</ul>
@@ -504,8 +637,8 @@ ${extras.length ? `<section class="block" aria-labelledby="h-at"><h2 id="h-at">A
 <ul class="checks">${extras.map(([k, v]) => `<li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10.5 4 4 8-9"/></svg><span><strong>${k}</strong>${v ? `<span class="muted"> · ${v}</span>` : ''}</span></li>`).join('')}</ul>
 </section>` : ''}
 
-${rich && (s.description || s.photos.length) ? `<section class="block" aria-labelledby="h-about"><h2 id="h-about">About this show</h2>
-${s.photos.length ? `<div class="photos">${s.photos.slice(0, 6).map((p, i) => `<img src="${esc(photoSrc(p, h))}" alt="${esc(s.name)} photo ${i + 1}" loading="lazy">`).join('')}</div>` : ''}
+${rich && (s.description || s.photos.length > 1) ? `<section class="block" aria-labelledby="h-about"><h2 id="h-about">About this show</h2>
+${s.photos.length > 1 ? `<div class="photos">${s.photos.slice(1, 7).map((p, i) => `<img src="${esc(photoSrc(p, h))}" alt="${esc(s.name)} photo ${i + 1}" loading="lazy">`).join('')}</div>` : ''}
 ${s.description ? `<div class="prose">${s.description.split(/\n{2,}|\r\n\r\n/).map(par => `<p>${esc(par)}</p>`).join('')}</div>` : ''}
 </section>` : (s.notes ? `<section class="block" aria-labelledby="h-about"><h2 id="h-about">About this show</h2><p>${esc(s.notes)}</p></section>` : '')}
 
@@ -549,6 +682,8 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
 </div>
 </article>` });
     fs.writeFileSync(path.join(OUT, s.path, 'event.ics'), ics(s));
+    fs.mkdirSync(path.join(OUT, 'covers'), { recursive: true });
+    fs.writeFileSync(path.join(OUT, 'covers', s.slug + '.svg'), coverSVG(s));
   }
 
   // Submit
