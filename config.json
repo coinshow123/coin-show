@@ -1,20 +1,22 @@
 {
-  "siteName": "Coin Calender",
+  "siteName": "The Coin Calendar",
   "tagline": "Built by a collector, for collectors.",
-  "siteUrl": "https://www.bourseboard.com",
-  "customDomain": "",
+  "siteUrl": "https://www.thecoincalendar.com",
+  "customDomain": "www.thecoincalendar.com",
   "sheetCsvUrl": "",
   "dealersCsvUrl": "",
   "submitFormUrl": "",
-  "contactEmail": "hello@bourseboard.com",
+  "contactEmail": "hello@thecoincalendar.com",
   "operator": "C&C Numismatics LLC",
   "emailSignupUrl": "",
   "sponsor": {
     "name": "C&C Numismatics",
     "line": "Fair offers from C&C Numismatics",
-    "url": "https://collectiblescurrency.com"
+    "url": "https://collectiblescurrency.com",
+    "sub": "U.S. coins and paper money · Rancho Cordova, CA"
   },
   "featuredPrice": "",
   "googleAnalyticsId": "",
-  "timeZone": "America/Los_Angeles"
+  "timeZone": "America/Los_Angeles",
+  "founderLine": "Run by Huy, a coin and paper money dealer in Rancho Cordova, CA."
 }

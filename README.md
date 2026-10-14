@@ -1,12 +1,14 @@
-# Bourse Board: setup and launch guide
+# The Coin Calendar: setup and launch guide
 
-This folder is your complete website. **Your Google Sheet is the admin panel.** You add, approve and feature shows there, then press **Bourse Board › Publish site now**. About 2 minutes later the website is updated. You never touch code.
+Website: **www.thecoincalendar.com**
+
+This folder is your complete website. **Your Google Sheet is the admin panel.** You add, approve and feature shows there, then press **Coin Calendar › Publish site now**. About 2 minutes later the website is updated. You never touch code.
 
 ## What it costs
 
 | Item | Cost |
 |---|---|
-| Domain name (for example bourseboard.com) | about $12–20 per year |
+| Domain name (thecoincalendar.com) | about $12–20 per year |
 | Hosting (GitHub Pages) | $0 |
 | Google Sheet, admin menu, Google Form | $0 |
 | Email list (MailerLite or similar, optional) | $0 up to about 1,000 subscribers |
@@ -18,7 +20,7 @@ Setup time: about 2–3 hours, once.
 
 ```
 Google Sheet  (private, only you can see it)
-   │  you press  Bourse Board › Publish site now   (or it runs nightly)
+   │  you press  Coin Calendar › Publish site now   (or it runs nightly)
    ▼
 Approved shows are saved to GitHub
    │  GitHub runs build.js and makes ~300 pages
@@ -51,7 +53,7 @@ Your sheet **stays private**. Only shows marked `approved` are sent to the websi
 
 ## Step 1. Put the shows in a Google Sheet (10 minutes)
 
-1. Go to sheets.google.com and create a blank sheet. Name it **Bourse Board Admin**.
+1. Go to sheets.google.com and create a blank sheet. Name it **Coin Calendar Admin**.
 2. **File › Import › Upload**, choose `data/shows.csv`, and pick **Replace current sheet**. Rename that tab **Shows**.
 3. **File › Import › Upload** again, choose `data/dealers.csv`, and pick **Insert new sheet**. Rename that tab **Dealers**.
 4. **Don't share or publish this sheet.** It stays private to you.
@@ -59,9 +61,9 @@ Your sheet **stays private**. Only shows marked `approved` are sent to the websi
 ## Step 2. Add the admin menu (10 minutes)
 
 1. In the sheet, open **Extensions › Apps Script**.
-2. Delete what's in the code box, then paste in **everything** from `admin/BourseBoardAdmin.gs` (open it with Notepad or TextEdit).
-3. Click the **Save** icon, then close that tab and **reload the sheet**. A **Bourse Board** menu appears at the top.
-4. Choose **Bourse Board › Settings › 1. Set up admin sheet**.
+2. Delete what's in the code box, then paste in **everything** from `admin/CoinCalendarAdmin.gs` (open it with Notepad or TextEdit).
+3. Click the **Save** icon, then close that tab and **reload the sheet**. A **Coin Calendar** menu appears at the top.
+4. Choose **Coin Calendar › Settings › 1. Set up admin sheet**.
    - The first time, Google asks for permission. Click **Continue**, pick your account, then **Advanced › Go to (your project) (unsafe)** and **Allow**.
    - Google shows that warning for any script that isn't published in its store. This one is your own and only works on your sheet.
 5. The Overview, Paid and Archive tabs appear, and the Shows tab gets dropdowns, checkboxes and colors.
@@ -70,15 +72,15 @@ Your sheet **stays private**. Only shows marked `approved` are sent to the websi
 
 1. Go to forms.google.com and create a form named **List your coin show**.
 2. Add these questions: Show name, First day, Last day, Public hours, Venue name, Street address, City, State, ZIP, Admission, Parking, Number of dealer tables, What collectors will find (checkboxes: U.S. coins, World coins, Ancient, Paper money, Bullion, Tokens and medals, Stamps), Extras (checkboxes: Auction, Grading submissions, Free appraisals, Exhibits, Kids' program, Door prizes, Talks), Show hotel, Website or Facebook page, Club or organizer, Anything collectors should know, Your name, Your email.
-3. On the **Responses** tab, click **Link to Sheets › Select existing spreadsheet**, and choose **Bourse Board Admin**. A **Form Responses 1** tab appears.
+3. On the **Responses** tab, click **Link to Sheets › Select existing spreadsheet**, and choose **Coin Calendar Admin**. A **Form Responses 1** tab appears.
 4. Click **Send › link icon** and copy the link. Paste it into `submitFormUrl` in Step 4.
 
 ## Step 4. Fill in config.json (5 minutes)
 
 Open `config.json` in any text editor (Notepad or TextEdit) and change:
 
-- `siteUrl`: your web address, like `https://www.bourseboard.com`. Until you buy a domain, use the GitHub address from Step 5.
-- `customDomain`: `www.bourseboard.com` once you own it. Leave it empty until then.
+- `siteUrl`: your web address, like `https://www.thecoincalendar.com`. Until you buy a domain, use the GitHub address from Step 5.
+- `customDomain`: `www.thecoincalendar.com`.
 - `submitFormUrl`: the Google Form link from Step 3.
 - `contactEmail`: the email for promoters and corrections.
 - `emailSignupUrl`: optional. Your MailerLite or Mailchimp signup page link.
@@ -90,24 +92,24 @@ Leave `sheetCsvUrl` and `dealersCsvUrl` empty. The admin menu handles that now.
 ## Step 5. Put the site on GitHub (30 minutes)
 
 1. Create a free account at github.com.
-2. Click **New repository**, name it `bourse-board`, choose **Public** (free Pages hosting needs public), and click **Create**.
+2. Click **New repository**, name it `coin-show`, choose **Public** (free Pages hosting needs public), and click **Create**.
 3. Click **uploading an existing file**. Drag in **everything inside this folder**, including the `.github` folder, then click **Commit changes**.
    - On a Mac, press **Cmd + Shift + .** in Finder to see the hidden `.github` folder.
 4. Go to **Settings › Pages**. Under **Source**, choose **GitHub Actions**.
 5. Go to the **Actions** tab, click **Build and publish site**, then **Run workflow**.
-6. After about 2 minutes, your site is live at `https://YOUR-USERNAME.github.io/bourse-board/`. Put that address in `siteUrl` in config.json.
+6. After about 2 minutes, your site is live at `https://YOUR-USERNAME.github.io/coin-show/` until your domain is connected. Keep `siteUrl` in config.json as `https://www.thecoincalendar.com`, so Google always learns your real address.
 
 ## Step 6. Connect your sheet to GitHub (10 minutes)
 
 1. On GitHub, go to **your photo › Settings › Developer settings › Personal access tokens › Fine-grained tokens › Generate new token**.
 2. Fill it in:
-   - Name: **Bourse Board sheet**
+   - Name: **Coin Calendar sheet**
    - Expiration: **1 year**
-   - Repository access: **Only select repositories › bourse-board**
+   - Repository access: **Only select repositories › coin-show**
    - Permissions › Repository permissions › **Contents: Read and write**
 3. Click **Generate** and copy the token. It starts with `github_pat_`.
-4. In your sheet, choose **Bourse Board › Settings › 2. Connect to GitHub**, and enter your username, `bourse-board`, and the token.
-5. Try it: **Bourse Board › Publish site now**.
+4. In your sheet, choose **Coin Calendar › Settings › 2. Connect to GitHub**, and enter your username, `coin-show`, and the token.
+5. Try it: **Coin Calendar › Publish site now**.
 
 > Treat the token like a password. Only people who can edit your sheet's script can see it, so don't share edit access to the sheet. It expires in a year; GitHub emails you first, and you repeat this step.
 
@@ -165,9 +167,19 @@ State pages like "Coin Shows in California" usually start appearing in Google wi
 | appraisals, exhibits, kids, door_prizes, talks | Checkboxes: tick if the show has it | ☑ |
 | hotel | Show hotel, rate, booking deadline | Hilton, $159/night, book by Dec 10 |
 | description | Longer write-up, a few paragraphs (shown for major and featured shows) | |
-| photos | Photo file names, separated by commas (shown for major and featured shows) | fun-floor.jpg, fun-entrance.jpg |
+| photos | Photo file names, separated by commas. The **first** photo becomes the show's picture on the home page and its show page. | fun-floor.jpg, fun-entrance.jpg |
+| photo_credit | Who took the first photo, if the license asks for credit | Jane Smith, CC BY-SA 4.0 |
 
-**Photos:** put the photo files in a folder named `photos` in your GitHub repository, then type their file names in the photos column. Use your own photos, or ones the promoter sends you with permission.
+**Pictures:** every show automatically gets a banknote-style cover picture with its city and dates. To use a real photo instead:
+1. Put the photo in a folder named `photos` in your GitHub repository (**Add file › Upload files**, then type `photos/` before the name, or upload into the folder).
+2. Type the file name in the show's **photos** column, then **Publish site now**.
+3. Use wide photos (landscape, at least 1280 pixels wide). Keep each under about 400 KB so phones load fast. Phone photos can be shrunk free at squoosh.app.
+
+**Where photos can legally come from:**
+- ✅ **Your own photos** from shows you attend. This is the best option. Ask before showing anyone's face up close.
+- ✅ **The promoter**, with written permission (an email saying "yes, you can use these" is enough).
+- ✅ **Wikimedia Commons** (commons.wikimedia.org) photos of convention centers. These are free, but you must give credit: fill in **photo_credit** exactly as the photo's page says.
+- ❌ **Never** copy photos from promoters' websites, Google Images, Facebook or other sites without permission. That can bring takedown notices or copyright claims.
 
 ### Dealers at each show
 
@@ -187,7 +199,7 @@ State pages like "Coin Shows in California" usually start appearing in Google wi
 
 ## If something goes wrong
 
-- **"Publish site now" says GitHub error 401 or 403:** your token expired or was typed wrong. Make a new one (Bourse Board › Help) and use Settings › 2. Connect to GitHub again.
+- **"Publish site now" says GitHub error 401 or 403:** your token expired or was typed wrong. Make a new one (Coin Calendar › Help) and use Settings › 2. Connect to GitHub again.
 - **The Actions tab on GitHub shows a red X:** click it, open **Build the site**, and read the last lines. It tells you which spreadsheet row has a problem (for example, a date it couldn't read). Fix the row, then Publish again. **Your site stays up while you fix it**, because the last good version stays live.
 - **"Near me" distance looks wrong for a show:** add its ZIP code, or lat and lon, in the sheet.
 - **GitHub email about a disabled workflow:** GitHub pauses daily runs after 60 days with no changes to the files. Click the link in the email to turn it back on, or make any small edit to the repository.
@@ -201,7 +213,7 @@ Install Node.js (nodejs.org, the LTS version). In this folder, run `node build.j
 - `build.js`: makes the website from the sheet
 - `config.json`: your settings
 - `assets/style.css`, `assets/app.js`: the look, plus the menu, slider, pages and near-me search
-- `admin/BourseBoardAdmin.gs`: the admin menu for Google Sheets
+- `admin/CoinCalendarAdmin.gs`: the admin menu for Google Sheets
 - `data/shows.csv`, `data/dealers.csv`: the starting lists (import into your sheet). After setup, the Publish button keeps these files updated for you.
 - `data/cities.json`, `data/zip3.json`, `data/state-centers.json`: map locations used for distances
 - `.github/workflows/deploy.yml`: the daily automatic rebuild

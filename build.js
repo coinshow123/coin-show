@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
-  Bourse Board site builder
-  -------------------------
+  The Coin Calendar site builder (thecoincalendar.com)
+  ---------------------------------------------------
   Turns the show spreadsheet (Google Sheet or data/shows.csv) into a complete
   static website in the "dist" folder.
 
@@ -19,8 +19,8 @@ const OUT = path.join(ROOT, 'dist');
 const PREVIEW = process.argv.includes('--preview');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
 const SHEET_URL = process.env.SHEET_CSV_URL || config.sheetCsvUrl || '';
-const SITE = (config.siteUrl || '').replace(/\/+$/, '');
-const NAME = config.siteName || 'Bourse Board';
+const SITE = (config.siteUrl || 'https://www.thecoincalendar.com').replace(/\/+$/, '');
+const NAME = config.siteName || 'The Coin Calendar';
 const OPERATOR = config.operator || 'C&C Numismatics LLC';
 const warnings = [];
 
@@ -217,8 +217,8 @@ function dateTile(s) {
 }
 function showRow(s, h) {
   const f = fmt(s);
-  const badges = (s.featured ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '') + (s.tier === 'major' ? '<span class="tag tag-major">National</span>' : '');
-  return `<tr data-s="${s.start}" data-e="${s.end}"${s.tier === 'major' ? ' class="is-major"' : ''}>
+  const badges = (s.featured ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '') + (s.tier === 'major' ? '<span class="tag tag-major">National</span>' : '') + (isFree(s) ? '<span class="tag tag-free">Free</span>' : '');
+  return `<tr data-s="${s.start}" data-e="${s.end}"${isFree(s) ? ' data-free="1"' : ''}${s.tier === 'major' ? ' class="is-major"' : ''}>
 <td class="c-date"><span class="d">${esc(shortDate(s))}</span><span class="dow">${esc(f.dow)}</span>${dateTile(s)}</td>
 <td class="c-st">${s.st}</td>
 <td class="c-name"><a href="${h(s.path)}">${esc(s.name)}</a>${badges}<span class="sub">${esc(s.city)}<span class="st-in">, ${s.st}</span>${s.venue ? ' · ' + esc(s.venue) : ''}</span></td>
@@ -232,9 +232,10 @@ function listSection(shows, h, o) {
   return `<section id="all" class="block" aria-labelledby="h-all">
 <div class="block-head">
 <div><h2 id="h-all">${esc(o.title)}</h2><p class="muted" data-range-for="${id}">${shows.length} upcoming show${shows.length === 1 ? '' : 's'}</p></div>
-<label class="state-pick" for="state-pick">Filter by state
+<label class="state-pick" for="state-pick">State
 <select id="state-pick" data-nav><option value="${h('')}#all"${o.curState ? '' : ' selected'}>All states</option>${opts}</select></label>
 </div>
+${o.chips ? `<div class="fchips" role="group" aria-label="Show only" data-chips-for="${id}"><button type="button" class="fchip" data-f="all" aria-pressed="true">All</button><button type="button" class="fchip" data-f="weekend" aria-pressed="false">This weekend</button><button type="button" class="fchip" data-f="major" aria-pressed="false">Major only</button></div>` : ''}
 <div class="table-wrap"><table class="shows" id="${id}" data-per="20"${o.filter ? ` data-filter="${o.filter}"` : ''}>
 <thead><tr><th scope="col" class="c-date">Date</th><th scope="col" class="c-st">State</th><th scope="col">Name of the coin show</th></tr></thead>
 <tbody>
@@ -245,23 +246,70 @@ ${shows.map(s => showRow(s, h)).join('\n')}
 </section>`;
 }
 
-function nearSection() {
-  return `<section id="near" class="block near" aria-labelledby="h-near">
-<h2 id="h-near">Coin shows near me</h2>
-<p class="muted">Enter your ZIP code to see shows within driving distance.</p>
-<form id="near-form" class="near-form" novalidate>
-<label for="near-zip">ZIP code<input id="near-zip" name="zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="95670"></label>
-<label for="near-radius">Within<select id="near-radius" name="radius"><option value="50">50 miles</option><option value="100">100 miles</option><option value="150" selected>150 miles</option><option value="300">300 miles</option></select></label>
-<button type="submit" class="btn btn-primary">Find shows near me</button>
-<button type="button" class="btn btn-ghost" id="near-gps">Use my location</button>
-</form>
+/* ---------- near me ----------
+   One ZIP form per page (id near-form). On the home page it sits in the banner and the
+   results open right under it; on other pages it is a block near the bottom. */
+function nearForm() {
+  return `<form id="near-form" class="near-form" novalidate role="search" aria-label="Find coin shows near a ZIP code">
+<label for="near-zip" class="near-label">Your ZIP code</label>
+<div class="zip-row">
+<input id="near-zip" name="zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="Your ZIP code">
+<button type="submit" class="btn btn-primary">Find shows</button>
+</div>
+<button type="button" class="linkish" id="near-gps"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3"/><circle cx="10" cy="10" r="6.2"/></svg>Or use my location</button>
 <p class="err" id="near-err" role="alert" hidden></p>
+</form>`;
+}
+function nearResults(hidden) {
+  return `<section id="near" class="near-out" aria-labelledby="h-near"${hidden ? ' hidden' : ''}>
+<div class="near-head"><h2 id="h-near">Coin shows near you</h2>
+<div class="near-tools"><label for="near-radius">Within <select id="near-radius" name="radius"><option value="50">50 miles</option><option value="100">100 miles</option><option value="150" selected>150 miles</option><option value="300">300 miles</option></select></label>
+<button type="button" class="linkish" id="near-clear">Change ZIP</button></div></div>
 <div id="near-results" aria-live="polite"></div>
+</section>`;
+}
+function nearSection() {
+  return `<section class="block near" aria-labelledby="h-near-find">
+<h2 id="h-near-find">Coin shows near me</h2>
+<p class="muted">Enter your ZIP code to see shows within driving distance, nearest dates first.</p>
+${nearForm()}
+${nearResults(true)}
+</section>`;
+}
+
+/* ---------- date strip: the next 14 days, with a show count on each ---------- */
+function dateStrip() {
+  const { upcoming } = SITEDATA;
+  const days = [];
+  for (let i = 0; i < 14; i++) {
+    const iso = addDays(todayISO, i), d = D(iso);
+    const n = upcoming.filter(s => s.start <= iso && s.end >= iso).length;
+    const first = i === 0 || d.getUTCDate() === 1;
+    days.push(`<li><button type="button" class="day${n ? '' : ' zero'}" data-day="${iso}" aria-pressed="false"${n ? '' : ' disabled'} aria-label="${DAY[d.getUTCDay()]}, ${MONTH[d.getUTCMonth()]} ${d.getUTCDate()}: ${n ? n + ' show' + (n === 1 ? '' : 's') : 'no shows'}">${first ? `<span class="dm">${MON[d.getUTCMonth()].toUpperCase()}</span>` : '<span class="dm" aria-hidden="true">&nbsp;</span>'}<span class="dw">${i === 0 ? 'Today' : DOW[d.getUTCDay()]}</span><span class="dn">${d.getUTCDate()}</span><span class="dc">${n ? n + (n === 1 ? ' show' : ' shows') : '–'}</span></button></li>`);
+  }
+  return `<section class="strip" aria-labelledby="h-strip">
+<div class="strip-head"><h2 id="h-strip">The next two weeks</h2><span class="muted">Tap a day to see its shows</span></div>
+<ul class="days" id="days">${days.join('')}</ul>
+</section>`;
+}
+
+function sponsorCard(h) {
+  const sp = config.sponsor || {};
+  return `<aside class="sponsor-card" aria-label="Sponsor"><div><span class="sp-k">Sponsor</span><p class="sp-h">Selling a collection? ${esc(sp.line || '')}</p><p class="sp-s">${esc(sp.sub || '')}</p></div><a class="btn btn-ghost" href="${h('sell-your-coins/')}">Get a fair offer</a></aside>`;
+}
+
+function signupBox() {
+  const url = config.emailSignupUrl
+    || `mailto:${config.contactEmail}?subject=${encodeURIComponent('Sign me up: monthly coin shows')}&body=${encodeURIComponent('Please send me coin shows near my ZIP code once a month.\n\nMy ZIP code: ')}`;
+  const ext = /^https?:/i.test(url);
+  return `<section class="signup" aria-labelledby="h-signup">
+<div><h2 id="h-signup">Shows near you, once a month</h2><p>One short email with the coin shows coming up near your ZIP code. No spam. Unsubscribe anytime.</p></div>
+<a class="btn btn-gold" href="${esc(url)}"${ext ? ' target="_blank" rel="noopener"' : ''}>Sign me up, free</a>
 </section>`;
 }
 
 /* ---------- home banner: engraved banknote pattern, gold coin, tagline, ZIP finder ---------- */
-const LOGO = '<svg class="logo-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="22" r="16" fill="var(--wine)"/><circle cx="20" cy="22" r="12" fill="none" stroke="var(--cream)" stroke-width="1.2" stroke-dasharray="1.6 1.6"/><rect x="11" y="3" width="3.5" height="9" rx="1.7" fill="var(--brass)"/><rect x="25.5" y="3" width="3.5" height="9" rx="1.7" fill="var(--brass)"/><text x="20" y="27.5" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#fff">C</text></svg>';
+const LOGO = '<svg class="logo-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#B8933F"/><circle cx="20" cy="20" r="15.5" fill="#D9B867"/><circle cx="20" cy="20" r="13.5" fill="none" stroke="#A07E33" stroke-width="1" stroke-dasharray="1.4 1.4"/><text x="20" y="25.5" text-anchor="middle" font-family="Georgia,serif" font-size="14.5" font-weight="700" fill="#6E520F">CC</text></svg>';
 function guillocheSVG() {
   const ring = (cx, cy, R, amp, n, lobes, sx, sy, cls, op) => {
     let out = '';
@@ -300,35 +348,27 @@ function coinSVG() {
 <circle cx="100" cy="100" r="87" fill="#D9B867"/>
 <circle cx="100" cy="100" r="84" fill="none" stroke="#A07E33" stroke-width="2.4"/>
 <g fill="#8A6A24">${stars}</g>
-<text font-family="Georgia,serif" font-size="13" font-weight="700" fill="#6E520F" letter-spacing="3"><textPath href="#coin-arc" startOffset="50%" text-anchor="middle">COIN CALENDAR</textPath></text>
+<text font-family="Georgia,serif" font-size="12" font-weight="700" fill="#6E520F" letter-spacing="1.6"><textPath href="#coin-arc" startOffset="50%" text-anchor="middle">${esc(NAME.toUpperCase())}</textPath></text>
 <text x="100" y="118" text-anchor="middle" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#6E520F">CC</text>
 <g clip-path="url(#coin-clip)"><rect class="coin-shine" x="-60" y="-20" width="34" height="240" fill="#fff" opacity=".38"/></g>
 </svg>`;
 }
+/* Brand name with the key word in bold: "The <b>Coin</b> Calendar" */
+function brandHTML() {
+  const w = NAME.split(' '), k = w.length > 1 && /^the$/i.test(w[0]) ? 1 : 0;
+  return w.map((x, i) => i === k ? `<b>${esc(x)}</b>` : `<span class="bw">${esc(x)}</span>`).join(' ');
+}
 function heroSection(h) {
   const { counts, upcoming } = SITEDATA;
-  const next = upcoming.find(s => s.tier === 'major');
-  const days = next ? Math.round((D(next.start) - D(todayISO)) / 864e5) : 0;
-  const when = days <= 0 ? 'Happening now' : days === 1 ? 'Tomorrow' : days < 45 ? `In ${days} days` : `In about ${Math.round(days / 30)} months`;
-  const words = NAME.split(' ');
   return `<section class="hero" aria-labelledby="h-hero">
 ${guillocheSVG()}
 <div class="hero-coin-wrap">${coinSVG()}</div>
 <div class="hero-text">
-<p class="eyebrow">Updated daily · ${upcoming.length} shows in ${Object.keys(counts).length} states</p>
-<h1 id="h-hero" class="hero-brand"><b>${esc(words[0])}</b> ${esc(words.slice(1).join(' '))}</h1>
+<p class="eyebrow">Updated daily · ${upcoming.length} shows<span class="eb-long"> in ${Object.keys(counts).length} states</span></p>
+<h1 id="h-hero" class="hero-h1">Find a coin show near you</h1>
 <span class="hero-rule" aria-hidden="true"></span>
 <p class="hero-tag">${esc(config.tagline || '')}</p>
-<form id="hero-form" class="hero-form" novalidate>
-<label for="hero-zip" class="hero-label">Find a coin show near you</label>
-<div class="hero-row">
-<input id="hero-zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="Your ZIP code">
-<button class="btn btn-primary" type="submit">Find shows</button>
-</div>
-</form>
-<button type="button" class="linkish" id="hero-gps">Or use my location</button>
-<p class="err" id="hero-err" role="alert" hidden></p>
-${next ? `<p class="hero-next">Next major show: <a href="${h(next.path)}">${esc(next.name)}</a> · ${esc(fmt(next).date)} · <span data-countdown="${next.start}">${when}</span></p>` : ''}
+${nearForm()}
 </div>
 </section>`;
 }
@@ -412,8 +452,8 @@ function page({ p, title, desc, active, body, jsonld, noindex, near, image }) {
   const h = linker(depth);
   const { counts, upcoming, weekendCount, majorCount } = SITEDATA;
   const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 10).sort((a, b) => STATES[a].localeCompare(STATES[b]));
-  const item = (key, href, label, sub) => `<a class="mi${active === key ? ' on' : ''}" href="${href}"${active === key ? ' aria-current="page"' : ''}><span>${label}</span>${sub !== '' ? `<span class="n">${sub}</span>` : ''}</a>`;
-  const activeLabel = active && active.startsWith('st:') ? STATES[active.slice(3)] : ({ near: 'Near me', weekend: 'This weekend', all: 'All shows', major: 'Major shows', states: 'All states' })[active] || '';
+  const nav = (key, href, label) => `<a class="nv${active === key ? ' on' : ''}" href="${href}"${active === key ? ' aria-current="page"' : ''}>${label}</a>`;
+  const stOn = active === 'states' || (active && active.startsWith('st:'));
   const ga = config.googleAnalyticsId ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${esc(config.googleAnalyticsId)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${esc(config.googleAnalyticsId)}');</script>` : '';
   const canonical = SITE + '/' + p;
   const html = `<!doctype html>
@@ -430,8 +470,8 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(canonical)}">
 ${image ? `<meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image">` : ''}
-<meta name="theme-color" content="#1F1A1B">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='22' r='16' fill='%236E1C27'/%3E%3Crect x='11' y='3' width='3.5' height='9' rx='1.7' fill='%23B08A3E'/%3E%3Crect x='25.5' y='3' width='3.5' height='9' rx='1.7' fill='%23B08A3E'/%3E%3Ctext x='20' y='28' text-anchor='middle' font-family='Georgia' font-size='15' font-weight='700' fill='%23fff'%3EC%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#14231D">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%23B8933F'/%3E%3Ccircle cx='20' cy='20' r='15.5' fill='%23D9B867'/%3E%3Ctext x='20' y='26' text-anchor='middle' font-family='Georgia' font-size='16' font-weight='700' fill='%236E520F'%3ECC%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
@@ -441,42 +481,28 @@ ${ga}
 </head>
 <body data-root="${depth ? '../'.repeat(depth) : './'}" data-preview="${PREVIEW ? '1' : '0'}">
 <a class="skip" href="#content">Skip to main content</a>
-<header class="top">
+<header class="top" data-open="false">
 <div class="wrap top-in">
-<a class="logo" href="${h('')}" aria-label="${esc(NAME)} home">${LOGO}<span><b>${esc(NAME.split(' ')[0])}</b> ${esc(NAME.split(' ').slice(1).join(' '))}</span></a>
-<span class="top-note">${upcoming.length} upcoming coin shows in ${Object.keys(counts).length} states</span>
-<a class="top-cta" href="${h('submit/')}">List your show</a>
+<a class="logo" href="${h('')}" aria-label="${esc(NAME)} home">${LOGO}<span>${brandHTML()}</span></a>
+<button type="button" class="nav-btn" aria-expanded="false" aria-controls="site-nav"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 6h16M3 11h16M3 16h16"/></svg><span>Menu</span></button>
+<nav class="nav" id="site-nav" aria-label="Main">
+${nav('all', h('') + '#all', 'All shows')}
+${nav('weekend', h('this-weekend/'), 'This weekend')}
+${nav('major', h('major-coin-shows/'), 'Major shows')}
+<details class="nv-dd"><summary class="nv${stOn ? ' on' : ''}">By state</summary>
+<div class="dd"><ul>${top.map(c => `<li><a href="${h('state/' + stateSlug(c) + '/')}"${active === 'st:' + c ? ' aria-current="page"' : ''}><span>${STATES[c]}</span><span class="n">${counts[c]}</span></a></li>`).join('')}</ul>
+<a class="dd-all" href="${h('states/')}">See all 50 states →</a></div></details>
+<a class="nv-cta${active === 'submit' ? ' on' : ''}" href="${h('submit/')}">List your show</a>
+</nav>
 </div>
 </header>
-<div class="wrap shell">
-<aside class="side" data-open="false">
-<button type="button" class="menu-btn" aria-expanded="false" aria-controls="side-body"><span class="menu-l"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 6h16M3 11h16M3 16h16"/></svg>Menu</span><span class="menu-r">${esc(activeLabel)}</span></button>
-<div class="side-body" id="side-body">
-<nav aria-label="Find shows"><h2 class="side-h">Find shows</h2>
-${item('near', near ? '#near' : h('') + '#near', 'Near me', 'ZIP')}
-${item('weekend', h('this-weekend/'), 'This weekend', String(weekendCount))}
-${item('all', h('') + '#all', 'All shows', String(upcoming.length))}
-${item('major', h('major-coin-shows/'), 'Major shows', String(majorCount))}
-</nav>
-<nav aria-label="Shows by state"><h2 class="side-h">By state</h2>
-${top.map(c => item('st:' + c, h('state/' + stateSlug(c) + '/'), STATES[c], String(counts[c]))).join('\n')}
-<a class="mi-more${active === 'states' ? ' on' : ''}" href="${h('states/')}">All 50 states</a>
-</nav>
-<a class="sponsor" href="${h('sell-your-coins/')}"><span class="sp-k">Sponsor</span><span class="sp-t">Sell your coins</span><span class="sp-s">${esc(config.sponsor && config.sponsor.line || '')}</span></a>
-<nav aria-label="For clubs and dealers"><h2 class="side-h">For clubs and dealers</h2>
-<a class="mi${active === 'submit' ? ' on' : ''}" href="${h('submit/')}"><span>List your show</span><span class="n free">Free</span></a>
-${config.emailSignupUrl ? `<a class="mi" href="${esc(config.emailSignupUrl)}" target="_blank" rel="noopener"><span>Get shows by email</span><span class="n">Monthly</span></a>` : ''}
-</nav>
-</div>
-</aside>
-<main id="content" class="main">
+<main id="content" class="wrap main">
 ${body(h)}
 </main>
-</div>
 <footer class="foot">
 <div class="wrap foot-in">
-<div><p class="foot-name">${esc(NAME)}</p><p>Show dates can change. Always confirm with the organizer before you travel.</p><p>${esc(NAME)} is operated by ${esc(OPERATOR)}, which also sponsors this site.</p></div>
-<nav aria-label="Footer"><a href="${h('about/')}">About</a><a href="${h('submit/')}">List your show</a><a href="${h('states/')}">All states</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></nav>
+<div><p class="foot-name">${brandHTML()}</p><p class="foot-tag">${esc(config.tagline || '')}${config.founderLine ? ' ' + esc(config.founderLine) : ''}</p><p>Show dates can change. Always confirm with the organizer before you travel.</p><p>${esc(NAME)} is operated by ${esc(OPERATOR)}, which also sponsors this site.</p></div>
+<nav aria-label="Footer"><a href="${h('') + '#all'}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a><a href="${h('submit/')}">List your show</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('about/')}">About</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></nav>
 </div>
 <p class="wrap copy">© ${D(todayISO).getUTCFullYear()} ${esc(NAME)}. Listings updated ${buildDateLong}.</p>
 </footer>
@@ -498,7 +524,7 @@ function googleCal(s) {
 }
 function ics(s) {
   const e = t => String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
-  const host = SITE.replace(/^https?:\/\//, '') || 'bourseboard';
+  const host = SITE.replace(/^https?:\/\//, '') || 'thecoincalendar.com';
   return ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${NAME}//EN`, 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
     `UID:${s.slug}@${host}`, `DTSTAMP:${compact(todayISO)}T000000Z`, `DTSTART;VALUE=DATE:${compact(s.start)}`, `DTEND;VALUE=DATE:${compact(addDays(s.end, 1))}`,
     `SUMMARY:${e(s.name)}`, `LOCATION:${e(fullAddress(s))}`, `DESCRIPTION:${e([s.hours && 'Hours: ' + s.hours, s.admission && 'Admission: ' + s.admission, 'Confirm dates with the organizer before you travel.'].filter(Boolean).join('\n'))}`,
@@ -516,20 +542,25 @@ function buildPages(shows) {
   page({ p: '', active: 'home', near: true, title: `${NAME}: Coin Shows Near You, ${years} Calendar`,
     desc: `Find coin shows near you. ${upcoming.length} upcoming U.S. coin, currency and bullion shows in ${Object.keys(counts).length} states, from FUN and ANA to local club shows.`,
     jsonld: { '@context': 'https://schema.org', '@type': 'WebSite', name: NAME, url: SITE + '/' },
-    body: h => `${heroSection(h)}
+    body: h => `<div class="home-top">${heroSection(h)}
+${dateStrip()}
+${nearResults(true)}</div>
 ${majorSlider(majors.slice(0, 10), h)}
 ${featuredStrip(feat, h)}
-${listSection(upcoming, h, { title: 'All coin shows', counts, empty: 'No upcoming shows are listed yet.' })}
-${nearSection()}
+${sponsorCard(h)}
+${listSection(upcoming, h, { title: 'All upcoming coin shows', counts, chips: true, empty: 'No upcoming shows are listed yet.' })}
+${signupBox()}
 ${listBox(h)}` });
 
   // This weekend
   const wkTitle = `${MON[D(fri).getUTCMonth()]} ${D(fri).getUTCDate()}–${D(fri).getUTCMonth() === D(sun).getUTCMonth() ? '' : MON[D(sun).getUTCMonth()] + ' '}${D(sun).getUTCDate()}`;
   page({ p: 'this-weekend/', active: 'weekend', near: true, title: `Coin Shows This Weekend (${wkTitle}) | ${NAME}`,
     desc: `Coin shows happening this weekend across the U.S., ${wkTitle}. Dates, cities and directions.`,
-    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › This weekend</p><h1>Coin shows this weekend</h1><p class="lede">Friday through Sunday, ${wkTitle}. Pick your state or use "Near me" to narrow it down.</p></div>
+    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › This weekend</p><h1>Coin shows this weekend</h1><p class="lede">Friday through Sunday, ${wkTitle}. Pick your state, or enter your ZIP code below to see what's close.</p></div>
 ${listSection(weekend, h, { title: `${weekend.length} show${weekend.length === 1 ? '' : 's'} this weekend`, counts, filter: 'weekend', empty: 'No shows are listed for this weekend. See all upcoming shows on the home page.' })}
-${nearSection()}` });
+${nearSection()}
+${sponsorCard(h)}
+${signupBox()}` });
 
   // Major shows
   page({ p: 'major-coin-shows/', active: 'major', title: `Major Coin Shows ${years}: FUN, ANA, Baltimore, Long Beach | ${NAME}`,
@@ -552,8 +583,10 @@ ${listBox(h)}` });
       desc: list.length ? `${list.length} upcoming coin shows in ${n}: dates, cities and venues for ${years}. Find coin and currency shows near you.` : `Upcoming coin shows in ${n}. Know a show? List it free on ${NAME}.`,
       body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('states/')}">States</a> › ${n}</p><h1>Coin shows in ${n}</h1><p class="lede">${list.length ? `${list.length} upcoming coin, currency and bullion show${list.length === 1 ? '' : 's'} in ${n}, soonest first.` : `No upcoming shows are listed in ${n} yet. If your club runs one, list it free.`}</p></div>
 ${featuredStrip(f, h)}
-${listSection(list, h, { title: `Upcoming shows in ${n}`, counts, curState: c, empty: `No upcoming shows in ${n} yet. Try "Near me" below; a show just over the state line may be closer than you think.` })}
+${listSection(list, h, { title: `Upcoming shows in ${n}`, counts, curState: c, empty: `No upcoming shows in ${n} yet. Enter your ZIP code below; a show just over the state line may be closer than you think.` })}
 ${nearSection()}
+${sponsorCard(h)}
+${signupBox()}
 ${listBox(h)}` });
   }
 
@@ -691,7 +724,7 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
     ? `<div class="form-embed"><iframe src="${esc(config.submitFormUrl)}${config.submitFormUrl.includes('?') ? '&' : '?'}embedded=true" title="Submit your coin show" loading="lazy"></iframe></div><p class="muted">Form not showing? <a href="${esc(config.submitFormUrl)}" target="_blank" rel="noopener">Open the form in a new tab</a>.</p>`
     : `<div class="callout"><p>Email your show details to <strong class="sel">${esc(config.contactEmail)}</strong> and we'll add it.</p></div>`;
   page({ p: 'submit/', active: 'submit', title: `List Your Coin Show Free | ${NAME}`,
-    desc: 'Clubs and promoters: list your coin show free on Bourse Board so collectors near you can find it.',
+    desc: `Clubs and promoters: list your coin show free on ${NAME} so collectors near you can find it.`,
     body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › List your show</p><h1>List your coin show free</h1><p class="lede">Tell collectors when and where your show is. We check every listing and usually publish it within two business days.</p></div>
 <div class="two">
 <section class="block"><h2>Show details</h2>${form}</section>
