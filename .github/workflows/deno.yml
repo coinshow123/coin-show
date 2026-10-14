@@ -1,0 +1,48 @@
+# Builds the site from the Google Sheet and publishes it to GitHub Pages.
+# Runs: every morning at 6am Pacific, whenever you change a file here,
+# and any time you click "Run workflow" on the Actions tab.
+name: Build and publish site
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build the site
+        run: node build.js
+        env:
+          SHEET_CSV_URL: ${{ vars.SHEET_CSV_URL }}
+          DEALERS_CSV_URL: ${{ vars.DEALERS_CSV_URL }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
