@@ -20,7 +20,10 @@ function bbIdx_(H) { var i = H.indexOf('added to site'); return i > -1 ? i : H.i
 
 var SHOW_COLUMNS = ['status', 'show_id', 'start_date', 'end_date', 'show_name', 'city', 'state', 'venue', 'address', 'zip', 'tier',
   'hours', 'admission', 'dealer_tables', 'parking', 'specialties', 'auction', 'grading', 'appraisals', 'exhibits', 'kids',
-  'door_prizes', 'talks', 'hotel', 'website', 'organizer', 'notes', 'description', 'photos', 'photo_credit', 'confirm_dates', 'featured', 'lat', 'lon'];
+  'door_prizes', 'talks', 'hotel', 'website', 'organizer', 'notes', 'description', 'photos', 'photo_credit', 'confirm_dates', 'featured', 'lat', 'lon',
+  'contact', 'source', 'last_checked'];
+// Never published: these stay in your private sheet only (organizer phone and email).
+var PRIVATE_COLUMNS = ['contact'];
 var CHECKBOX_COLUMNS = ['appraisals', 'exhibits', 'kids', 'door_prizes', 'talks', 'confirm_dates', 'featured'];
 var DEALER_COLUMNS = ['status', 'show_id', 'dealer', 'table', 'city', 'state'];
 var PAID_COLUMNS = ['customer', 'email', 'bought', 'show_id_or_note', 'amount', 'paid_on', 'expires', 'notes'];
@@ -286,7 +289,9 @@ function exportCsv_() {
     if (zi > -1 && typeof r[zi] === 'number') r[zi] = String(r[zi]).padStart(5, '0');
     return r;
   });
-  var out = { shows: csv_(H, approved), showCount: approved.length, dealers: null, dealerCount: 0 };
+  var keep = H.map(function (h, i) { return PRIVATE_COLUMNS.indexOf(h) === -1 ? i : -1; }).filter(function (i) { return i > -1; });
+  var pick = function (r) { return keep.map(function (i) { return r[i]; }); };
+  var out = { shows: csv_(pick(H), approved.map(pick)), showCount: approved.length, dealers: null, dealerCount: 0 };
   if (dealers && dealers.getLastRow() > 1) {
     var DH = headers_(dealers), di = DH.indexOf('status');
     var drows = dealers.getRange(2, 1, dealers.getLastRow() - 1, DH.length).getValues()

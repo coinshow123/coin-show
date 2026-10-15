@@ -217,3 +217,10 @@ Install Node.js (nodejs.org, the LTS version). In this folder, run `node build.j
 - `data/shows.csv`, `data/dealers.csv`: the starting lists (import into your sheet). After setup, the Publish button keeps these files updated for you.
 - `data/cities.json`, `data/zip3.json`, `data/state-centers.json`: map locations used for distances
 - `.github/workflows/deploy.yml`: the daily automatic rebuild
+
+
+## Research columns (added October 2026)
+
+- `source`: where the listing was found (Numismatic News calendar, ANA events calendar, CoinZip, FindBullionPrices). Used for checking dates; never shown on the site.
+- `contact`: the organizer's name, phone or email as published in show calendars. **Private.** Keep it only in your Google Sheet; the sheet's Publish button leaves this column out of the public site files.
+- `last_checked`: the date someone last confirmed the show with the organizer. Leave empty until confirmed.
