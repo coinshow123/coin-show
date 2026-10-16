@@ -1,0 +1,48 @@
+# The Coin Calendar: reads dealer lists that organizers upload.
+# The Google Sheet drops each uploaded file into incoming/dealer-lists/. This reads it
+# (PDF, Excel or CSV) and saves the dealers next to it as a .json file. Then you review
+# it in the sheet: Coin Calendar > Review show updates. Takes about 1 to 2 minutes.
+name: Read dealer lists
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "incoming/dealer-lists/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: read-dealer-lists
+  cancel-in-progress: false
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install the reader
+        run: npm install --prefix tools --no-audit --no-fund
+      - name: Read new files
+        run: |
+          shopt -s nullglob nocaseglob
+          todo=()
+          for f in incoming/dealer-lists/*.{pdf,xlsx,xls,csv,txt}; do
+            [ -f "${f%.*}.json" ] || todo+=("$f")
+          done
+          if [ ${#todo[@]} -eq 0 ]; then echo "Nothing new to read."; exit 0; fi
+          node tools/read-dealer-list.js "${todo[@]}"
+      - name: Save the results
+        run: |
+          git config user.name "Coin Calendar reader"
+          git config user.email "actions@users.noreply.github.com"
+          git add incoming/dealer-lists/*.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git commit -m "Read dealer lists"
+          git pull --rebase
+          git push
