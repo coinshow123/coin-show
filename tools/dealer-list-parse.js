@@ -19,7 +19,7 @@
     name: /^(dealer|dealers|dealer name|company|business|business name|name|firm|exhibitor|vendor)$/i,
     city: /^(city|town)$/i,
     state: /^(state|st|st\.)$/i,
-    loc: /^(location|city,?\s*state|city\s*\/\s*state|from|hometown)$/i
+    loc: /^(location|locations|from|hometown|address|city,?\s*(state|st)\.?(\s*\/\s*(website|web|url))?|city\s*\/\s*(state|st)\.?|(city,?\s*)?(state|st)\s*\/\s*website|website|web site)$/i
   };
   function headerMap(cells) {
     var map = {}, hits = 0;
@@ -42,6 +42,53 @@
       }
     }
     return { name: t, city: '' };
+  }
+  var ACRO = {LLC:1,USA:1,US:1,PCGS:1,NGC:1,PMG:1,CAC:1,ANA:1,ANS:1,ANACS:1,APMEX:1,JRS:1,RCG:1,SPMC:1,CNG:1,UK:1,TV:1,II:1,III:1,IV:1,CSNS:1,PNG:1,NFL:1,MLB:1,NBA:1};
+  var SMALL = {OF:1,AND:1,THE:1,FOR:1,A:1,AN:1,IN:1,ON:1,AT:1,BY:1,TO:1,OR:1};
+  var SPECIAL = {INC:'Inc',CO:'Co',CORP:'Corp',LTD:'Ltd',INTL:'Intl',MT:'Mt',FT:'Ft',ST:'St'};
+  /* "A COIN & SILVER SHOP $" -> "A Coin & Silver Shop". Only touches names typed in ALL CAPS. */
+  function tidyName(s) {
+    var t = String(s || '').replace(/(\s*[*$\u2020\u2021\u00a7^~+]+)+\s*$/, '').replace(/^\s*[*$\u2020\u2021]+\s*/, '').trim();
+    if (/[a-z]/.test(t) || !/[A-Z]{2}/.test(t)) return t;
+    if (/^(www\.)?[A-Z0-9-]+(\.[A-Z]{2,})+$/.test(t)) return t.toLowerCase();
+    return t.split(/(\s+)/).map(function (w, i) {
+      if (/^\s+$/.test(w) || !w) return w;
+      if (/\d/.test(w) || /^([A-Z]\.){2,}$/.test(w)) return w;
+      if (/^(www\.)?[A-Z0-9-]+\.(COM|NET|ORG|US|BIZ|INFO)$/.test(w)) return w.toLowerCase();
+      return w.split(/([-\/&])/).map(function (part) {
+        var core = part.replace(/[^A-Z']/g, ''), base = core.replace(/'S$/, '');
+        if (!core) return part;
+        if (ACRO[base]) return part;
+        if (SPECIAL[base]) return part.replace(base, SPECIAL[base]);
+        if (SMALL[core] && i > 0) return part.toLowerCase();
+        if (base.length <= 3 && !/[AEIOUY]/.test(base)) return part;
+        return part.charAt(0) + part.slice(1).toLowerCase().replace(/(mc)([a-z])/, function (m, a, b) { return a + b.toUpperCase(); });
+      }).join('');
+    }).join('');
+  }
+  /* "ABBOTT, MIKE" -> "Mike Abbott" (people listed last name first) */
+  function personName(s) {
+    var m = s.match(/^([A-Za-z'.-]+),\s+([A-Za-z]+(?:\s+[A-Za-z]\.?)?)$/);
+    if (m && !/^(inc|llc|ltd|co|corp|intl|jr|sr)\.?$/i.test(m[2])) return m[2] + ' ' + m[1];
+    return s;
+  }
+  var isWeb = function (p) { return /^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|net|org|us|biz|info|co|coin|coins|store|shop)(\/\S*)?$/i.test(p.trim()); };
+  /* "NEW YORK, NY / NUMISMATICS.ORG" -> {city, state, website}. Slogans like "BUYING & SELLING" are ignored. */
+  function readLoc(text, cityIndex) {
+    var out = { city: '', state: '', website: '', unknown: '' };
+    String(text || '').split(/\s+\/\s+|\s*;\s*/).forEach(function (part) {
+      part = part.trim(); if (!part) return;
+      if (isWeb(part)) { if (!out.website) out.website = part.toLowerCase().replace(/^https?:\/\//, ''); return; }
+      if (out.state) return;
+      var m = part.match(/^(.*?)[,\s]+([A-Za-z]{2}|[A-Za-z][A-Za-z ]{3,})\.?$/);
+      if (m && stateCode(m[2]) && m[1].trim()) { out.city = m[1].replace(/,\s*$/, '').trim(); out.state = stateCode(m[2]); return; }
+      if (cityIndex) {
+        var hits = Object.keys(cityIndex).filter(function (st) { return cityIndex[st][norm(part)]; });
+        if (hits.length === 1) { out.city = part; out.state = hits[0]; return; }
+      }
+      if (!out.unknown) out.unknown = part;
+    });
+    return out;
   }
   function clean(s) { return String(s || '').replace(/\s+/g, ' ').replace(/^[\s,;|·-]+|[\s,;|·-]+$/g, '').trim(); }
   var JUNK = /^(page\s*\d+|dealer list|bourse|floor plan|updated|subject to change|questions|thank you|www\.|http)/i;
@@ -72,8 +119,9 @@
         var get = function (k) { return header[k] !== undefined ? clean(byCol[header[k]] || '') : ''; };
         d.name = get('name'); d.table = tableOf(get('table')) || get('table'); d.city = get('city'); d.state = stateCode(get('state')) || get('state');
         if (header.loc !== undefined) {
-          var loc = get('loc'), lm = loc.match(/^(.*?)[,\s]+([A-Za-z]{2}|[A-Za-z ]{4,})$/);
-          if (lm && stateCode(lm[2])) { d.city = d.city || clean(lm[1]); d.state = d.state || stateCode(lm[2]); } else if (loc) d.city = d.city || loc;
+          d._loc = get('loc');
+          var L = readLoc(d._loc, cityIndex);
+          d.city = d.city || L.city; d.state = d.state || L.state; d.website = L.website; d._unknown = L.unknown;
         }
         if (!d.state && d.city) { var cm = d.city.match(/^(.*?),?\s+([A-Z]{2})$/); if (cm && stateCode(cm[2])) { d.city = clean(cm[1]); d.state = cm[2]; } }
       } else {
@@ -96,17 +144,46 @@
         }
       }
       d.name = clean(d.name); d.city = clean(d.city);
+      // a wrapped line: no table number, continuing the row above
+      var prev = out[out.length - 1];
+      if (header && prev && !d.table && prev.table) {
+        if (!d.name && d._loc !== undefined) {
+          var L2 = readLoc((prev._loc || '') + ' / ' + d._loc, cityIndex);
+          prev._loc = (prev._loc || '') + ' / ' + d._loc;
+          prev.city = prev.city || L2.city; prev.state = prev.state || L2.state; prev.website = prev.website || L2.website;
+          prev.flag = flagFor(prev); return;
+        }
+        if (/[\/&-]\s*$/.test(prev.name)) { prev.name = clean(prev.name + ' ' + d.name); prev.flag = flagFor(prev); return; }
+      }
       if (!d.name) { skipped.push(joined); return; }
       // headings above the first real dealer line ("Our Dealers") are not dealers
       if (!header && !out.length && !d.table && !d.state) { skipped.push(joined); return; }
-      var why = [];
-      if (!d.state || !STATES[d.state]) why.push('state');
-      if (!d.city) why.push('city');
-      d.flag = why.length ? 'check ' + why.join(' and ') : '';
+      d.flag = flagFor(d);
       out.push(d);
     });
+    // lists with no city or state column at all: nothing to check there
+    function flagFor(d) {
+      var why = [], hasPlace = !header || header.loc !== undefined || header.city !== undefined || header.state !== undefined;
+      if (hasPlace) {
+        if (header && header.loc !== undefined && !header.city && !header.state) {
+          // only flag a location we could not understand (a website or nothing at all is fine)
+          if (d._unknown && !d.state) why.push('city and state');
+        } else {
+          if (!d.state || !STATES[d.state]) why.push('state');
+          if (!d.city) why.push('city');
+        }
+      }
+      return why.length ? 'check ' + why.join(' and ') : '';
+    }
     var anyTable = out.some(function (d) { return d.table; });
-    if (anyTable) out.forEach(function (d) { if (!d.table) d.flag = d.flag ? d.flag + ', table' : 'check table'; });
+    out.forEach(function (d) {
+      d.name = personName(tidyName(d.name));
+      d.city = tidyName(d.city);
+      if (d.table) d.table = String(d.table).replace(/\s*,\s*/g, ', ');
+      if (anyTable && !d.table) d.flag = d.flag ? d.flag + ', table' : 'check table';
+      if (!d.website) delete d.website;
+      delete d._loc; delete d._unknown;
+    });
     return { dealers: out, skipped: skipped, header: !!header };
   }
 
@@ -145,6 +222,6 @@
     Object.keys(citiesJson).forEach(function (k) { var p = k.split('|'); (idx[p[1]] = idx[p[1]] || {})[p[0]] = 1; });
     return idx;
   }
-  var api = { parse: parse, linesFromPdfItems: linesFromPdfItems, linesFromTable: linesFromTable, cityIndexFrom: cityIndexFrom, stateCode: stateCode };
+  var api = { tidyName: tidyName, parse: parse, linesFromPdfItems: linesFromPdfItems, linesFromTable: linesFromTable, cityIndexFrom: cityIndexFrom, stateCode: stateCode };
   if (typeof module === 'object' && module.exports) module.exports = api; else root.DealerList = api;
 })(this);
