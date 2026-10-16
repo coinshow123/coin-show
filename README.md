@@ -224,3 +224,31 @@ Install Node.js (nodejs.org, the LTS version). In this folder, run `node build.j
 - `source`: where the listing was found (Numismatic News calendar, ANA events calendar, CoinZip, FindBullionPrices). Used for checking dates; never shown on the site.
 - `contact`: the organizer's name, phone or email as published in show calendars. **Private.** Keep it only in your Google Sheet; the sheet's Publish button leaves this column out of the public site files.
 - `last_checked`: the date someone last confirmed the show with the organizer. Leave empty until confirmed.
+
+
+## "Update this show" button for promoters (added October 2026)
+
+Every show page has a gold **Update this show** box. Until you make the form, the button opens an email to you with the show's details. After you make the form, it opens a Google Form already filled in with that show's details.
+
+**Make the form (one time, about 2 minutes):**
+1. In your Google Sheet: **Coin Calendar › Settings › 3. Create the update form**. Allow the permissions Google asks for (it needs to make a form and email you).
+2. It makes the form, links it to a new **Show Updates** tab, and creates a **Trusted Promoters** tab.
+3. Press **Publish site now**. About 3 minutes later every show page links to the form, and the "List your show" page shows it too.
+
+**When a promoter sends an update:** you get an email. Open the sheet and choose **Coin Calendar › Review show updates**. You see only what changed. Click **Approve**, **Approve and trust this email** (their future updates go live by themselves, except date changes and cancellations), or **Reject**. Then **Publish site now**.
+
+**Promoter contact info:** the form asks "Show your name, email and phone on this show's page?" Only if they choose Yes does the site show them (columns `contact_name`, `contact_phone`, `contact_email`, `public_contact`). If they choose No, Publish blanks those columns before anything reaches GitHub.
+
+**Dealer applications (organizers upload their own):**
+1. One time: **Coin Calendar › Settings › 4. Create the dealer application upload form**. A message tells you how to add the file-upload box to the form (Google doesn't let scripts add it): open the form, click **+**, choose **File upload**, title it *Dealer application file*, allow PDF, Document and Image, 1 file, 10 MB, Required.
+2. Press **Publish site now**. Every show page gets **Upload dealer application** in the organizer box.
+3. Organizers sign in with Google (Google requires it for uploads), pick their file and send. You get an email.
+4. **Coin Calendar › Review show updates** lists the file. Click **Open the uploaded file** to check it, then **Approve and publish file**. It's copied to your website as `applications/<show id>.pdf` and the show page shows **Download dealer application (PDF)**. Uploads from trusted promoters go live by themselves.
+5. Each show date has its own application. A new upload for the same show replaces the old file.
+
+
+## Dealer pages (added October 2026)
+
+Every dealer in any show's dealer list gets its own page automatically, for example `/dealer/collectibles-and-currency-ca/`. It shows the dealer's next show and table number, then every upcoming show they'll be at. Dealer names on show pages link to these pages, and `/dealers/` is a dealer finder: collectors enter a ZIP code and see the dealers based closest to them, with each dealer's next show, plus a state filter. It stays hidden from Google, and out of the top menu, until there are at least 10 dealers (change the number with `dealersInMenuAt` in config.json).
+
+The same business in the same state is treated as one dealer, even if the name is typed slightly differently ("The", "Inc", "LLC" are ignored). Type a dealer's name the same way each time in the Dealers tab to keep one page per dealer.

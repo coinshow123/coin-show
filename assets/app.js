@@ -336,3 +336,45 @@
     if (saved && /^\d{5}$/.test(saved)) fromZip(saved, false).catch(function () {});
   }
 })();
+
+/* ----- Dealers page: nearest dealers to a ZIP code, and a state filter ----- */
+(function () {
+  'use strict';
+  var form = document.getElementById('dealer-near'), list = document.getElementById('dealer-index');
+  if (!form || !list) return;
+  var zipIn = document.getElementById('dealer-zip'), err = document.getElementById('dealer-err');
+  var note = document.getElementById('dealer-sort-note'), stSel = document.getElementById('dealer-state');
+  var ROOT = document.body.getAttribute('data-root') || './';
+  var items = [].slice.call(list.children), total = items.length;
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  function miles(a, b, c, d) { var r = Math.PI / 180, h = Math.pow(Math.sin((c - a) * r / 2), 2) + Math.cos(a * r) * Math.cos(c * r) * Math.pow(Math.sin((d - b) * r / 2), 2); return 3959 * 2 * Math.asin(Math.sqrt(h)); }
+  var zip3 = null;
+  function run(z, scroll) {
+    err.hidden = true;
+    (zip3 ? Promise.resolve() : fetch(ROOT + 'assets/zip3.json').then(function (r) { return r.json(); }).then(function (j) { zip3 = j; })).then(function () {
+      var p = zip3[z.slice(0, 3)];
+      if (!p) { err.textContent = 'That ZIP code was not found. Check it and try again.'; err.hidden = false; return; }
+      store('bb-zip', z);
+      items.forEach(function (li) {
+        var la = parseFloat(li.getAttribute('data-la')), lo = parseFloat(li.getAttribute('data-lo'));
+        li._mi = isNaN(la) ? Infinity : miles(p[0], p[1], la, lo);
+        li.querySelector('.dl-mi').textContent = !isFinite(li._mi) ? '' : li._mi < 5 ? 'Nearby · ' : Math.round(li._mi) + ' mi · ';
+      });
+      items.slice().sort(function (a, b) { return a._mi - b._mi; }).forEach(function (li) { list.appendChild(li); });
+      note.textContent = total + ' dealer' + (total === 1 ? '' : 's') + ', nearest to ' + z + ' first';
+      if (scroll) list.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }).catch(function () { err.textContent = 'Could not load. Check your connection and try again.'; err.hidden = false; });
+  }
+  zipIn.addEventListener('input', function () { zipIn.value = zipIn.value.replace(/\D/g, '').slice(0, 5); err.hidden = true; });
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!/^\d{5}$/.test(zipIn.value)) { err.textContent = 'Enter a 5-digit ZIP code.'; err.hidden = false; zipIn.focus(); return; }
+    run(zipIn.value, true);
+  });
+  if (stSel) stSel.addEventListener('change', function () {
+    var v = stSel.value;
+    items.forEach(function (li) { li.hidden = !!v && li.getAttribute('data-st') !== v; });
+  });
+  var saved = store('bb-zip');
+  if (saved && /^\d{5}$/.test(saved)) { zipIn.value = saved; run(saved, false); }
+})();

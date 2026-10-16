@@ -1,0 +1,9 @@
+{
+  "name": "coin-calendar-tools",
+  "private": true,
+  "description": "Reads dealer lists (PDF, Excel, CSV) uploaded by show organizers.",
+  "dependencies": {
+    "pdfjs-dist": "3.11.174",
+    "xlsx": "0.18.5"
+  }
+}

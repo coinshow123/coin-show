@@ -22,6 +22,11 @@ const SHEET_URL = process.env.SHEET_CSV_URL || config.sheetCsvUrl || '';
 const SITE = (config.siteUrl || 'https://www.thecoincalendar.com').replace(/\/+$/, '');
 const NAME = config.siteName || 'The Coin Calendar';
 const OPERATOR = config.operator || 'C&C Numismatics LLC';
+/* "Update this show" form. Made by the Google Sheet (Settings > 3) and saved as data/update-form.json. */
+const readJson = f => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); } catch (e) { return null; } };
+const UPDATE_FORM = readJson('data/update-form.json');
+/* Dealer application upload form for organizers (Settings > 4 in the Google Sheet). */
+const UPLOAD_FORM = readJson('data/upload-form.json');
 const warnings = [];
 
 /* ---------- states ---------- */
@@ -183,10 +188,37 @@ function cleanShows(rows) {
       specialties: splitList(r.specialties), auction: r.auction, grading: r.grading,
       appraisals: yes(r.appraisals), exhibits: yes(r.exhibits), kids: yes(r.kids), prizes: yes(r.door_prizes), talks: yes(r.talks),
       hotel: r.hotel, description: r.description, photos: splitList(r.photos), photoCredit: r.photo_credit, dealers: [],
+      // organizer contact: only used when the promoter chose to make it public
+      publicContact: yes(r.public_contact), contactName: (r.contact_name || '').trim(), contactPhone: (r.contact_phone || '').trim(), contactEmail: (r.contact_email || '').trim(),
+      dealerApp: (r.dealer_application || '').trim(), dealerListFile: (r.dealer_list_file || '').trim(), showId: (r.show_id || '').trim(),
       la: Math.round(la * 1000) / 1000, lo: Math.round(lo * 1000) / 1000, slug, path: `show/${slug}/`
     });
   }
   return out.sort((a, b) => a.start.localeCompare(b.start) || a.st.localeCompare(b.st) || a.name.localeCompare(b.name));
+}
+
+/* ---------- dealer pages ----------
+   Every dealer in a show's dealer list gets a page listing all the upcoming shows they will be at.
+   The same business in the same state is one dealer, even if the name is typed slightly differently. */
+const dealerKey = d => slugify(String(d.name).replace(/^the\s+/i, '').replace(/[,.]?\s*\b(inc|llc|l\.l\.c|co|corp|company|ltd)\b\.?$/i, '')) + (d.st ? '-' + d.st.toLowerCase() : '');
+function collectDealers(upcoming) {
+  const map = new Map();
+  for (const s of upcoming) for (const d of s.dealers) {
+    const k = dealerKey(d);
+    if (!k) continue;
+    if (!map.has(k)) map.set(k, { key: k, names: {}, city: d.city, st: d.st, stops: [] });
+    const e = map.get(k);
+    e.names[d.name] = (e.names[d.name] || 0) + 1;
+    if (!e.city && d.city) e.city = d.city;
+    if (!e.stops.some(x => x.s === s)) e.stops.push({ s, table: d.table });
+    d.path = 'dealer/' + k + '/';
+  }
+  for (const e of map.values()) {
+    e.name = Object.entries(e.names).sort((a, b) => b[1] - a[1])[0][0];
+    e.path = 'dealer/' + e.key + '/';
+    e.stops.sort((a, b) => a.s.start.localeCompare(b.s.start));
+  }
+  return [...map.values()].sort((a, b) => a.name.replace(/^the\s+/i, '').localeCompare(b.name.replace(/^the\s+/i, '')));
 }
 
 /* ---------- links ---------- */
@@ -489,6 +521,7 @@ ${ga}
 ${nav('all', h('') + '#all', 'All shows')}
 ${nav('weekend', h('this-weekend/'), 'This weekend')}
 ${nav('major', h('major-coin-shows/'), 'Major shows')}
+${(SITEDATA.dealerCount || 0) >= (config.dealersInMenuAt || 10) ? nav('dealers', h('dealers/'), 'Dealers') : ''}
 <details class="nv-dd"><summary class="nv${stOn ? ' on' : ''}">By state</summary>
 <div class="dd"><ul>${top.map(c => `<li><a href="${h('state/' + stateSlug(c) + '/')}"${active === 'st:' + c ? ' aria-current="page"' : ''}><span>${STATES[c]}</span><span class="n">${counts[c]}</span></a></li>`).join('')}</ul>
 <a class="dd-all" href="${h('states/')}">See all 50 states →</a></div></details>
@@ -502,7 +535,7 @@ ${body(h)}
 <footer class="foot">
 <div class="wrap foot-in">
 <div><p class="foot-name">${brandHTML()}</p><p class="foot-tag">${esc(config.tagline || '')}${config.founderLine ? ' ' + esc(config.founderLine) : ''}</p><p>Show dates can change. Always confirm with the organizer before you travel.</p><p>${esc(NAME)} is operated by ${esc(OPERATOR)}, which also sponsors this site.</p></div>
-<nav aria-label="Footer"><a href="${h('') + '#all'}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a><a href="${h('submit/')}">List your show</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('about/')}">About</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></nav>
+<nav aria-label="Footer"><a href="${h('') + '#all'}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a><a href="${h('dealers/')}">Dealers</a><a href="${h('submit/')}">List your show</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('about/')}">About</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></nav>
 </div>
 <p class="wrap copy">© ${D(todayISO).getUTCFullYear()} ${esc(NAME)}. Listings updated ${buildDateLong}.</p>
 </footer>
@@ -531,10 +564,47 @@ function ics(s) {
     `URL:${SITE}/${s.path}`, 'END:VEVENT', 'END:VCALENDAR', ''].join('\r\n');
 }
 
+/* ---------- promoter tools: update link, dealer application, public contact ---------- */
+const PREFILL = { show_id: s => s.showId, show_name: s => s.name, start_date: s => s.start, end_date: s => s.end, hours: s => s.hours,
+  admission: s => s.admission, venue: s => s.venue, address: s => s.address, city: s => s.city, state: s => s.st, zip: s => s.zip,
+  dealer_tables: s => s.tables, website: s => s.website, specialties: s => s.specialties.join(', '), dealer_application: s => s.dealerApp, organizer: s => s.organizer };
+/* Link to the "Update this show" form with this show's public details already filled in.
+   Before the form exists, falls back to an email with the details. Never pre-fills private contact info. */
+function updateLink(s) {
+  if (UPDATE_FORM && UPDATE_FORM.url && UPDATE_FORM.entries) {
+    const q = Object.entries(UPDATE_FORM.entries).map(([k, entry]) => {
+      const v = PREFILL[k] ? PREFILL[k](s) : '';
+      return v ? entry + '=' + encodeURIComponent(String(v)).slice(0, 600) : '';
+    }).filter(Boolean);
+    return UPDATE_FORM.url + '?usp=pp_url&' + q.join('&');
+  }
+  const f = fmt(s);
+  const body = `Show: ${s.name}\nDates on the site: ${f.date}\nShow ID: ${s.showId || s.slug}\n\nWhat should we change or add? (hours, admission, venue, dealer tables, dealer list, dealer application link)\n\n\nYour name:\nYour phone (optional):\nShow your name, email and phone on the show page? Yes / No\n`;
+  return `mailto:${config.contactEmail}?subject=${encodeURIComponent('Update my show: ' + s.name + ' (' + f.date + ')')}&body=${encodeURIComponent(body)}`;
+}
+/* Organizer uploads this show's dealer application. Before the form exists: email with the file attached. */
+function uploadLink(s, kind) {
+  if (UPLOAD_FORM && UPLOAD_FORM.url && UPLOAD_FORM.entries) {
+    const kindValue = kind && UPLOAD_FORM.kinds ? UPLOAD_FORM.kinds[kind] : '';
+    const q = [['kind', kindValue], ['show_id', s.showId], ['show_name', s.name]].filter(([k, v]) => UPLOAD_FORM.entries[k] && v)
+      .map(([k, v]) => UPLOAD_FORM.entries[k] + '=' + encodeURIComponent(v));
+    return UPLOAD_FORM.url + '?usp=pp_url&' + q.join('&');
+  }
+  const f = fmt(s);
+  if (kind === 'list') return `mailto:${config.contactEmail}?subject=${encodeURIComponent('Dealer list: ' + s.name + ' (' + f.date + ')')}&body=${encodeURIComponent(`Please attach your dealer list (PDF, Excel or CSV) to this email.\n\nShow: ${s.name}\nDates: ${f.date}\nShow ID: ${s.showId || s.slug}\nYour name:\n`)}`;
+  return `mailto:${config.contactEmail}?subject=${encodeURIComponent('Dealer application: ' + s.name + ' (' + f.date + ')')}&body=${encodeURIComponent(`Please attach your dealer application (PDF) to this email.\n\nShow: ${s.name}\nDates: ${f.date}\nShow ID: ${s.showId || s.slug}\nYour name:\n`)}`;
+}
+const listHref = (s, h) => /^https?:\/\//i.test(s.dealerListFile) ? s.dealerListFile : h('dealer-lists/' + s.dealerListFile.replace(/^\/+/, ''));
+const appHref = (s, h) => /^https?:\/\//i.test(s.dealerApp) ? s.dealerApp : h('applications/' + s.dealerApp.replace(/^\/+/, ''));
+const appLabel = s => /\.pdf($|\?)/i.test(s.dealerApp) ? 'Download dealer application (PDF)' : 'Download dealer application';
+const showsContact = s => s.publicContact && (s.contactName || s.contactPhone || s.contactEmail);
+
 /* ---------- pages ---------- */
 function buildPages(shows) {
   const { counts, upcoming, weekend, fri, sun } = SITEDATA;
   const majors = upcoming.filter(s => s.tier === 'major');
+  const dealers = collectDealers(upcoming); // before the show pages, so dealer names can link to dealer pages
+  SITEDATA.dealerCount = dealers.length;
   const feat = upcoming.filter(s => s.featured);
   const yr = D(todayISO).getUTCFullYear(), years = `${yr}–${yr + 1}`;
 
@@ -684,6 +754,7 @@ ${s.venue ? `<div class="kv"><dt>Venue</dt><dd>${esc(s.venue)}</dd></div>` : ''}
 <div class="kv"><dt>Parking</dt><dd>${s.parking ? esc(s.parking) : '<span class="muted">Not posted yet</span>'}</dd></div>
 ${s.hotel ? `<div class="kv"><dt>Hotel</dt><dd>${esc(s.hotel)}</dd></div>` : ''}
 ${s.organizer ? `<div class="kv"><dt>Host</dt><dd>${esc(s.organizer)}</dd></div>` : ''}
+${showsContact(s) ? `<div class="kv kv-contact"><dt>Contact</dt><dd>${s.contactName ? `<span class="ct-name">${esc(s.contactName)}</span>` : ''}${s.contactPhone ? `<a href="tel:${esc(s.contactPhone.replace(/[^0-9+]/g, ''))}">${esc(s.contactPhone)}</a>` : ''}${s.contactEmail ? `<a href="mailto:${esc(s.contactEmail)}?subject=${encodeURIComponent(s.name)}">${esc(s.contactEmail)}</a>` : ''}<span class="muted small">Shared by the organizer</span></dd></div>` : ''}
 </dl>
 </div>
 <p><a class="btn btn-primary" href="${esc(dir)}" target="_blank" rel="noopener">Get directions</a></p>
@@ -692,10 +763,16 @@ ${s.organizer ? `<div class="kv"><dt>Host</dt><dd>${esc(s.organizer)}</dd></div>
 <section class="block" id="dealers" aria-labelledby="h-dealers"><div class="block-head"><div><h2 id="h-dealers">Dealers at this show</h2>
 <p class="muted">${s.dealers.length ? `${s.dealers.length} dealer${s.dealers.length === 1 ? '' : 's'}, A to Z` : 'The dealer list has not been posted yet.'}</p></div>
 ${s.dealers.length > 15 ? `<label class="dealer-find" for="dealer-find">Find a dealer<input id="dealer-find" type="text" placeholder="Name or city" data-filter-list="dealer-list"></label>` : ''}</div>
-${s.dealers.length ? `<ul class="dealers" id="dealer-list">${s.dealers.map(d => `<li><span class="dl-name">${esc(d.name)}</span>${d.table ? ` <span class="dl-table">#${esc(String(d.table).replace(/^#/, ''))}</span>` : ''}${d.city || d.st ? ` <span class="dl-loc">${esc([d.city, d.st].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>
-<p class="empty" data-empty-for-filter="dealer-list" hidden>No dealer matches that search.</p>` : ''}
-<p class="small">Setting up at this show? Email your business name, table number and city to <strong class="sel">${esc(config.contactEmail)}</strong> to be listed free.</p>
+${s.dealers.length ? `<ul class="dealers" id="dealer-list">${s.dealers.map(d => `<li><span class="dl-name">${d.path ? `<a href="${h(d.path)}">${esc(d.name)}</a>` : esc(d.name)}</span>${d.table ? ` <span class="dl-table">#${esc(String(d.table).replace(/^#/, ''))}</span>` : ''}${d.city || d.st ? ` <span class="dl-loc">${esc([d.city, d.st].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>
+<p class="empty" data-empty-for-filter="dealer-list" hidden>No dealer matches that search.</p>` : `<p class="small app-none">Organizer? <a href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">Upload your dealer list</a> (PDF, Excel or CSV) and we will add it here.</p>`}
+${s.dealerListFile ? `<p class="small dl-file"><a href="${esc(listHref(s, h))}" target="_blank" rel="noopener"${!/^https?:/i.test(s.dealerListFile) ? ' download' : ''}>Download the organizer's full dealer list${/\.pdf($|\?)/i.test(s.dealerListFile) ? ' (PDF)' : ''}</a></p>` : ''}
+${s.dealerApp ? `<div class="dealer-app"><div><strong>Want a table at this show?</strong><span class="muted"> Download the organizer's dealer application, fill it out and send it to them.</span></div><a class="btn btn-primary" href="${esc(appHref(s, h))}" target="_blank" rel="noopener"${!/^https?:/i.test(s.dealerApp) ? ' download' : ''}>${appLabel(s)}</a></div>` : `<p class="small app-none">The dealer application for this show has not been posted yet. <a href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">Organizer? Upload it here.</a></p>`}
+
 </section>
+
+<aside class="promoter-box" aria-labelledby="h-promo-${esc(s.slug)}"><div><span class="sp-k">For the organizer</span><h2 id="h-promo-${esc(s.slug)}">Run this show? Update it free.</h2>
+<p>Fix the date or hours, add your dealer list, upload your dealer application so dealers can download it, and choose whether to show your contact info here.</p></div>
+<div class="promo-btns"><a class="btn btn-gold" href="${esc(updateLink(s))}" target="_blank" rel="noopener">Update this show</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">${s.dealers.length ? 'Replace dealer list' : 'Upload dealer list'}</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">${s.dealerApp ? 'Replace dealer application' : 'Upload dealer application'}</a></div></aside>
 
 ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more">More coin shows in ${n}</h2>
 <div class="table-wrap"><table class="shows"><thead><tr><th scope="col" class="c-date">Date</th><th scope="col" class="c-st">State</th><th scope="col">Name of the coin show</th></tr></thead><tbody>${more.map(x => showRow(x, h)).join('')}</tbody></table></div>
@@ -720,8 +797,9 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
   }
 
   // Submit
-  const form = config.submitFormUrl
-    ? `<div class="form-embed"><iframe src="${esc(config.submitFormUrl)}${config.submitFormUrl.includes('?') ? '&' : '?'}embedded=true" title="Submit your coin show" loading="lazy"></iframe></div><p class="muted">Form not showing? <a href="${esc(config.submitFormUrl)}" target="_blank" rel="noopener">Open the form in a new tab</a>.</p>`
+  const formUrl = config.submitFormUrl || (UPDATE_FORM && UPDATE_FORM.url) || '';
+  const form = formUrl
+    ? `<div class="form-embed"><iframe src="${esc(formUrl)}${formUrl.includes('?') ? '&' : '?'}embedded=true" title="Submit your coin show" loading="lazy"></iframe></div><p class="muted">Form not showing? <a href="${esc(formUrl)}" target="_blank" rel="noopener">Open the form in a new tab</a>. Already listed? Use the <strong>Update this show</strong> button on your show's page instead.</p>`
     : `<div class="callout"><p>Email your show details to <strong class="sel">${esc(config.contactEmail)}</strong> and we'll add it.</p></div>`;
   page({ p: 'submit/', active: 'submit', title: `List Your Coin Show Free | ${NAME}`,
     desc: `Clubs and promoters: list your coin show free on ${NAME} so collectors near you can find it.`,
@@ -730,7 +808,7 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
 <section class="block"><h2>Show details</h2>${form}</section>
 <aside class="stack">
 <div class="card"><h2>How it works</h2><ol><li>Fill out the form. It takes about 3 minutes.</li><li>We check the details with your club or website.</li><li>Your show goes live with its own page, map link and calendar button.</li></ol></div>
-<div class="card"><h2>What to have ready</h2><ul><li>Show name and dates</li><li>Venue name and street address</li><li>Public hours and admission</li><li>Number of dealer tables</li><li>Website or Facebook page</li><li>Your name and email (kept private)</li></ul></div>
+<div class="card"><h2>What to have ready</h2><ul><li>Show name and dates</li><li>Venue name and street address</li><li>Public hours and admission</li><li>Number of dealer tables</li><li>Website or Facebook page</li><li>Dealer application link (optional)</li><li>Your name and email (private unless you choose to show them)</li></ul></div>
 <div class="card card-gold"><h2>Featured listing${config.featuredPrice ? ' · ' + esc(config.featuredPrice) : ''}</h2><p>Top of your state's list for 30 days, a gold Featured badge, and a spot on the home page.</p><p>Email <strong class="sel">${esc(config.contactEmail)}</strong> to reserve.</p></div>
 </aside>
 </div>` });
@@ -749,6 +827,43 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
 <p><a href="${h('')}#near">Find a coin show near you</a> to get offers in person.</p></section>
 <aside class="sponsor-wide"><span class="sp-k">Our sponsor</span><h2>${esc(config.sponsor.name)}</h2><p>A professional U.S. coin and paper money dealer, set up at FUN, ANA and West Coast regional shows. Fair, no-pressure offers on single pieces and full collections.</p><a class="btn btn-gold" href="${esc(config.sponsor.url)}" target="_blank" rel="noopener">Contact ${esc(config.sponsor.name)}</a></aside>
 <p class="muted small">${esc(NAME)} is operated by ${esc(OPERATOR)}. We tell you this so you can weigh our sponsor's offer like any other.</p>` });
+
+  // Dealers: one page per dealer + an A to Z index
+  for (const e of dealers) {
+    const loc = [e.city, e.st && STATES[e.st] ? e.st : ''].filter(Boolean).join(', ');
+    const next = e.stops[0], nf = fmt(next.s);
+    const tableNo = t => t ? '#' + esc(String(t).replace(/^#/, '')) : '';
+    page({ p: e.path, active: 'dealers', title: `${e.name}: Upcoming Coin Shows${loc ? ' | ' + loc : ''} | ${NAME}`,
+      desc: `Where is ${e.name} next? ${e.stops.length} upcoming coin show${e.stops.length === 1 ? '' : 's'}${loc ? ' for this ' + loc + ' dealer' : ''}, with dates, cities and table numbers.`,
+      jsonld: { '@context': 'https://schema.org', '@type': 'Organization', name: e.name, address: loc ? { '@type': 'PostalAddress', addressLocality: e.city || undefined, addressRegion: e.st || undefined, addressCountry: 'US' } : undefined, url: `${SITE}/${e.path}` },
+      body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('dealers/')}">Dealers</a> › ${esc(e.name)}</p>
+<h1>${esc(e.name)}</h1><p class="lede">${loc ? `Coin dealer from ${esc(loc)}. ` : ''}${e.stops.length} upcoming show${e.stops.length === 1 ? '' : 's'} where you can find them.</p></div>
+<a class="dealer-next" href="${h(next.s.path)}"><span class="dn-k">Next show</span><span class="dn-name">${esc(next.s.name)}</span><span class="dn-meta">${esc(nf.date)} · ${esc(next.s.city)}, ${next.s.st}</span>${next.table ? `<span class="dn-table">Table ${tableNo(next.table)}</span>` : ''}</a>
+<section class="block" aria-labelledby="h-dshows"><h2 id="h-dshows">All upcoming shows</h2>
+<div class="table-wrap"><table class="shows"><thead><tr><th scope="col" class="c-date">Date</th><th scope="col" class="c-mi">Table</th><th scope="col">Coin show</th></tr></thead><tbody>
+${e.stops.map(({ s: x, table }) => { const f = fmt(x); return `<tr><td class="c-date"><span class="d">${esc(shortDate(x))}</span><span class="dow">${esc(f.dow)}</span>${dateTile(x)}</td><td class="c-mi">${tableNo(table) || '<span class="muted">–</span>'}</td><td class="c-name"><a href="${h(x.path)}">${esc(x.name)}</a><span class="sub">${esc(x.city)}<span class="st-in">, ${x.st}</span>${x.venue ? ' · ' + esc(x.venue) : ''}</span></td></tr>`; }).join('\n')}
+</tbody></table></div></section>
+<aside class="callout"><p><strong>Is this your business?</strong> Email <strong class="sel">${esc(config.contactEmail)}</strong> to correct your listing. Show organizers add dealer lists to their show pages.</p></aside>` });
+  }
+  // where each dealer is based (their city), for "dealers near me"
+  const dealerLL = e => { const c = e.city && e.st ? CITIES[normCity(e.city) + '|' + e.st] : null; return c || null; };
+  const dStates = [...new Set(dealers.map(e => e.st).filter(st => STATES[st]))].sort((a, b) => STATES[a].localeCompare(STATES[b]));
+  page({ p: 'dealers/', active: 'dealers', noindex: dealers.length < 10, title: `Coin Dealers Near You | ${NAME}`,
+    desc: `Find coin dealers near you and the next show where you can meet them. ${dealers.length} dealers listed from show organizers' dealer lists.`,
+    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › Dealers</p><h1>Find a coin dealer near you</h1><p class="lede">Enter your ZIP code to see the dealers based closest to you, and the next show where you can meet them at their table.</p></div>
+${dealers.length ? `<section class="block dealer-finder" aria-label="Dealers">
+<form id="dealer-near" class="near-form dealer-near" novalidate role="search" aria-label="Find dealers near a ZIP code">
+<label for="dealer-zip" class="near-label">Your ZIP code</label>
+<div class="zip-row"><input id="dealer-zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="Your ZIP code"><button type="submit" class="btn btn-primary">Find dealers</button></div>
+<p class="err" id="dealer-err" role="alert" hidden></p>
+</form>
+<div class="block-head dealer-tools"><p class="muted" id="dealer-sort-note">${dealers.length} dealer${dealers.length === 1 ? '' : 's'}, A to Z</p>
+<div class="dealer-filters">${dStates.length > 1 ? `<label class="dealer-find" for="dealer-state">State<select id="dealer-state"><option value="">All states</option>${dStates.map(st => `<option value="${st}">${STATES[st]}</option>`).join('')}</select></label>` : ''}
+${dealers.length > 15 ? `<label class="dealer-find" for="dealer-find">Name or city<input id="dealer-find" type="text" placeholder="Search" data-filter-list="dealer-index"></label>` : ''}</div></div>
+<ul class="dealers" id="dealer-index">${dealers.map(e => { const ll = dealerLL(e); return `<li data-st="${esc(e.st || '')}"${ll ? ` data-la="${ll[0]}" data-lo="${ll[1]}"` : ''}><span class="dl-name"><a href="${h(e.path)}">${esc(e.name)}</a></span><span class="dl-table dl-count"><span class="dl-mi"></span>${e.stops.length} show${e.stops.length === 1 ? '' : 's'}</span><span class="dl-loc">${esc([e.city, e.st].filter(Boolean).join(', '))}${e.city || e.st ? ' · ' : ''}Next: <a href="${h(e.stops[0].s.path)}">${esc(e.stops[0].s.name)}</a>, ${esc(shortDate(e.stops[0].s))}</span></li>`; }).join('')}</ul>
+<p class="empty" data-empty-for-filter="dealer-index" hidden>No dealer matches that search.</p>
+<p class="muted small">Dealers are listed by the city they are based in, from show organizers' dealer lists. Many dealers do business mainly at shows, so check their next show.</p></section>` : '<p class="muted">No dealer lists have been posted yet.</p>'}
+<aside class="callout"><p><strong>Run a coin show?</strong> Add your dealer list from your show's page with the <strong>Update this show</strong> button.</p></aside>` });
 
   // About
   page({ p: 'about/', active: 'about', title: `About ${NAME}`,
@@ -816,6 +931,10 @@ async function main() {
   for (const f of ['style.css', 'app.js']) fs.copyFileSync(path.join(ROOT, 'assets', f), path.join(OUT, 'assets', f));
   fs.copyFileSync(path.join(ROOT, 'data/zip3.json'), path.join(OUT, 'assets/zip3.json'));
   if (fs.existsSync(path.join(ROOT, 'photos'))) fs.cpSync(path.join(ROOT, 'photos'), path.join(OUT, 'photos'), { recursive: true });
+  // dealer applications you upload yourself (PDFs), referenced by file name in the dealer_application column
+  if (fs.existsSync(path.join(ROOT, 'applications'))) fs.cpSync(path.join(ROOT, 'applications'), path.join(OUT, 'applications'), { recursive: true });
+  // organizers' original dealer lists, linked from each show page
+  if (fs.existsSync(path.join(ROOT, 'dealer-lists'))) fs.cpSync(path.join(ROOT, 'dealer-lists'), path.join(OUT, 'dealer-lists'), { recursive: true });
   fs.writeFileSync(path.join(OUT, 'assets/shows.json'), JSON.stringify(upcoming.map(s => ({ n: s.name, c: s.city, st: s.st, v: s.venue, s: s.start, e: s.end, la: s.la, lo: s.lo, p: s.path }))));
 
   buildPages(shows);
