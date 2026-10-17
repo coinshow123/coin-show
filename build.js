@@ -13,6 +13,9 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+// A fingerprint of the look and the scripts. It changes whenever style.css or app.js changes,
+// so visitors' browsers always load the new files together with the new pages.
+const ASSET_V = require('crypto').createHash('md5').update(['style.css', 'app.js'].map(f => require('fs').readFileSync(require('path').join(__dirname, 'assets', f), 'utf8')).join('')).digest('hex').slice(0, 8);
 
 const ROOT = __dirname;
 const OUT = path.join(ROOT, 'dist');
@@ -507,7 +510,7 @@ ${image ? `<meta property="og:image" content="${esc(image)}"><meta name="twitter
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="stylesheet" href="${h('assets/style.css')}">
+<link rel="stylesheet" href="${h('assets/style.css')}?v=${ASSET_V}">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 ${ga}
 </head>
@@ -539,7 +542,7 @@ ${body(h)}
 </div>
 <p class="wrap copy">© ${D(todayISO).getUTCFullYear()} ${esc(NAME)}. Listings updated ${buildDateLong}.</p>
 </footer>
-<script src="${h('assets/app.js')}" defer></script>
+<script src="${h('assets/app.js')}?v=${ASSET_V}" defer></script>
 </body>
 </html>`;
   const file = path.join(OUT, p, 'index.html');
@@ -761,8 +764,8 @@ ${showsContact(s) ? `<div class="kv kv-contact"><dt>Contact</dt><dd>${s.contactN
 </section>
 
 <section class="block" id="dealers" aria-labelledby="h-dealers"><div class="block-head"><div><h2 id="h-dealers">Dealers at this show</h2>
-<p class="muted">${s.dealers.length ? `${s.dealers.length} dealer${s.dealers.length === 1 ? '' : 's'}, A to Z` : 'The dealer list has not been posted yet.'}${s.dealerListFile ? ` · <a href="${esc(listHref(s, h))}" target="_blank" rel="noopener"${!/^https?:/i.test(s.dealerListFile) ? ' download' : ''}>Organizer's full list${/\.pdf($|\?)/i.test(s.dealerListFile) ? ' (PDF)' : ''}</a>` : ''}</p></div></div>
-${s.dealers.length > 15 ? `<div class="dealer-search" role="search"><label for="dealer-find">Find a dealer</label><input id="dealer-find" type="search" placeholder="Dealer name or table number" autocomplete="off" data-filter-list="dealer-list"></div>` : ''}
+<p class="muted">${s.dealers.length ? `${s.dealers.length} dealer${s.dealers.length === 1 ? '' : 's'}, A to Z` : 'The dealer list has not been posted yet.'}${s.dealerListFile ? ` · <a href="${esc(listHref(s, h))}" target="_blank" rel="noopener"${!/^https?:/i.test(s.dealerListFile) ? ' download' : ''}>Organizer's full list${/\.pdf($|\?)/i.test(s.dealerListFile) ? ' (PDF)' : ''}</a>` : ''}</p></div>
+${s.dealers.length > 15 ? `<div class="dealer-search dealer-search-head" role="search"><label for="dealer-find">Find a dealer</label><input id="dealer-find" type="search" placeholder="Dealer name or table number" autocomplete="off" data-filter-list="dealer-list"></div>` : ''}</div>
 ${s.dealers.length ? `<ul class="dealers" id="dealer-list"${s.dealers.length > 40 ? ' data-paginate="40"' : ''}>${s.dealers.map(d => `<li><span class="dl-name">${d.path ? `<a href="${h(d.path)}">${esc(d.name)}</a>` : esc(d.name)}</span>${d.table ? ` <span class="dl-table">#${esc(String(d.table).replace(/^#/, ''))}</span>` : ''}${d.city || d.st ? ` <span class="dl-loc">${esc([d.city, d.st].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>
 <nav class="pager" data-pager-for="dealer-list" aria-label="Dealer list pages" hidden></nav>
 <p class="empty" data-empty-for-filter="dealer-list" hidden>No dealer matches that search.</p>` : `<p class="small app-none">Organizer? <a href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">Upload your dealer list</a> (PDF, Excel or CSV) and we will add it here.</p>`}
