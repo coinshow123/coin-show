@@ -30,6 +30,9 @@ const readJson = f => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 
 const UPDATE_FORM = readJson('data/update-form.json');
 /* Dealer application upload form for organizers (Settings > 4 in the Google Sheet). */
 const UPLOAD_FORM = readJson('data/upload-form.json');
+/* The 5 dealer specialties. Only these show on the site. */
+const SPECIALTIES = ['U.S. Paper Money', 'Rare Coins', 'World Paper Money', 'Ancient', 'Bullion'];
+const SPEC_ID = { 'U.S. Paper Money': 'paper', 'Rare Coins': 'rare', 'World Paper Money': 'world', 'Ancient': 'ancient', 'Bullion': 'bullion' };
 const warnings = [];
 
 /* ---------- states ---------- */
@@ -160,7 +163,7 @@ async function loadDealers(shows) {
     const id = (r.show_id || '').trim().toUpperCase();
     if (!r.dealer) continue;
     if (!byId[id]) { warnings.push(`Dealers line ${r._line}: show_id "${r.show_id}" does not match any show. Add it to the show's show_id column.`); continue; }
-    byId[id].forEach(s => s.dealers.push({ name: r.dealer, table: r.table, city: r.city, st: (r.state || '').toUpperCase() }));
+    byId[id].forEach(s => s.dealers.push({ name: r.dealer, table: r.table, city: r.city, st: (r.state || '').toUpperCase(), website: (r.website || '').trim() }));
   }
   const key = n => n.toLowerCase().replace(/^the\s+/, '');
   shows.forEach(s => s.dealers.sort((a, b) => key(a.name).localeCompare(key(b.name))));
@@ -267,7 +270,8 @@ function collectDealers(upcoming) {
     while (used.has(key)) key += '-2';
     used.add(key);
     const withPlace = g.recs.find(r => r.d.city) || {};
-    const e = { key, name, city: withPlace.d ? withPlace.d.city : '', st: g.st, stops: [], path: 'dealer/' + key + '/' };
+    const withWeb = g.recs.find(r => r.d.website) || {};
+    const e = { key, name, city: withPlace.d ? withPlace.d.city : '', st: g.st, stops: [], path: 'dealer/' + key + '/', website: withWeb.d ? withWeb.d.website : '', specs: [], verified: false };
     for (const r of g.recs) {
       r.d.name = name; r.d.path = e.path;
       if (!r.d.st && g.st) { r.d.st = g.st; if (!r.d.city) r.d.city = e.city; }
@@ -606,7 +610,7 @@ ${body(h)}
   const file = path.join(OUT, p, 'index.html');
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, html);
-  SITEDATA.pages.push(p);
+  if (!noindex) SITEDATA.pages.push(p);
 }
 
 /* ---------- calendar helpers ---------- */
@@ -665,6 +669,8 @@ function buildPages(shows) {
   const { counts, upcoming, weekend, fri, sun } = SITEDATA;
   const majors = upcoming.filter(s => s.tier === 'major');
   const dealers = collectDealers(upcoming); // before the show pages, so dealer names can link to dealer pages
+  applyDealerProfiles(dealers);
+  fs.writeFileSync(path.join(OUT, 'assets/dealers.json'), JSON.stringify(dealers.map(e => ({ k: e.key, n: e.name, c: e.city || '', st: e.st || '', w: e.website || '', shows: e.stops.length }))));
   SITEDATA.dealerCount = dealers.length;
   const feat = upcoming.filter(s => s.featured);
   const yr = D(todayISO).getUTCFullYear(), years = `${yr}–${yr + 1}`;
@@ -894,24 +900,31 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
     const loc = [e.city, e.st && STATES[e.st] ? e.st : ''].filter(Boolean).join(', ');
     const next = e.stops[0], nf = fmt(next.s);
     const tableNo = t => t ? '#' + esc(String(t).replace(/^#/, '')) : '';
-    page({ p: e.path, active: 'dealers', title: `${e.name}: Upcoming Coin Shows${loc ? ' | ' + loc : ''} | ${NAME}`,
+    // thin pages stay out of Google until they have something to offer (2+ shows, specialties or a verified profile)
+    const rich = e.stops.length > 1 || e.verified || e.specs.length;
+    fs.mkdirSync(path.join(OUT, e.path), { recursive: true });
+    fs.writeFileSync(path.join(OUT, e.path, 'shows.ics'), dealerIcs(e));
+    page({ p: e.path, active: 'dealers', noindex: !rich, title: `${e.name}: Upcoming Coin Shows${loc ? ' | ' + loc : ''} | ${NAME}`,
       desc: `Where is ${e.name} next? ${e.stops.length} upcoming coin show${e.stops.length === 1 ? '' : 's'}${loc ? ' for this ' + loc + ' dealer' : ''}, with dates, cities and table numbers.`,
-      jsonld: { '@context': 'https://schema.org', '@type': 'Organization', name: e.name, address: loc ? { '@type': 'PostalAddress', addressLocality: e.city || undefined, addressRegion: e.st || undefined, addressCountry: 'US' } : undefined, url: `${SITE}/${e.path}` },
-      body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('dealers/')}">Dealers</a> › ${esc(e.name)}</p>
-<h1>${esc(e.name)}</h1><p class="lede">${loc ? `Coin dealer from ${esc(loc)}. ` : ''}${e.stops.length} upcoming show${e.stops.length === 1 ? '' : 's'} where you can find them.</p></div>
-<a class="dealer-next" href="${h(next.s.path)}"><span class="dn-k">Next show</span><span class="dn-name">${esc(next.s.name)}</span><span class="dn-meta">${esc(nf.date)} · ${esc(next.s.city)}, ${next.s.st}</span>${next.table ? `<span class="dn-table">Table ${tableNo(next.table)}</span>` : ''}</a>
-<section class="block" aria-labelledby="h-dshows"><h2 id="h-dshows">All upcoming shows</h2>
+      jsonld: { '@context': 'https://schema.org', '@type': 'Organization', name: e.name, url: e.website ? webHref(e.website) : `${SITE}/${e.path}`, address: loc ? { '@type': 'PostalAddress', addressLocality: e.city || undefined, addressRegion: e.st || undefined, addressCountry: 'US' } : undefined },
+      body: h => `<div class="dealer-top"><div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('dealers/')}">Dealers</a> › ${esc(e.name)}</p>
+<h1>${esc(e.name)}${verifiedTag(e)}</h1><p class="lede">${loc ? `Coin dealer from ${esc(loc)}. ` : ''}${e.stops.length === 1 ? 'Find them at their next show.' : `${e.stops.length} upcoming shows where you can find them.`}</p></div>
+${e.specs.length ? `<ul class="chips dealer-specs" aria-label="Specialties">${e.specs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+<div class="dealer-actions">${e.website ? `<a class="btn btn-ghost" href="${esc(webHref(e.website))}" target="_blank" rel="noopener nofollow">Website · ${esc(webLabel(e.website))}</a>` : ''}
+<details class="cal-menu"><summary class="btn btn-ghost">Add their shows to my calendar</summary><div class="cal-pop"><p class="small muted">New shows for ${esc(e.name)} appear in your calendar by themselves.</p><a class="btn btn-primary" data-ics-sub="shows.ics" href="shows.ics">iPhone, Mac or Outlook</a><a class="btn btn-ghost" data-ics-google="shows.ics" href="shows.ics" target="_blank" rel="noopener">Google Calendar</a><a class="cal-dl" href="shows.ics" download="${esc(e.key)}-shows.ics">Download the calendar file</a></div></details></div>
+<a class="dealer-next" href="${h(next.s.path)}"><span class="dn-k">Next show</span><span class="dn-name">${esc(next.s.name)}</span><span class="dn-meta">${esc(nf.date)} · ${esc(next.s.city)}, ${next.s.st}${next.s.venue ? ' · ' + esc(next.s.venue) : ''}</span>${next.table ? `<span class="dn-table">Table ${tableNo(next.table)}</span>` : ''}<span class="dn-go">Show hours, address and directions →</span></a></div>
+${e.stops.length > 1 ? `<section class="block" aria-labelledby="h-dshows"><h2 id="h-dshows">All upcoming shows</h2>
 <div class="table-wrap"><table class="shows"><thead><tr><th scope="col" class="c-date">Date</th><th scope="col" class="c-mi">Table</th><th scope="col">Coin show</th></tr></thead><tbody>
 ${e.stops.map(({ s: x, table }) => { const f = fmt(x); return `<tr><td class="c-date"><span class="d">${esc(shortDate(x))}</span><span class="dow">${esc(f.dow)}</span>${dateTile(x)}</td><td class="c-mi">${tableNo(table) || '<span class="muted">–</span>'}</td><td class="c-name"><a href="${h(x.path)}">${esc(x.name)}</a><span class="sub">${esc(x.city)}<span class="st-in">, ${x.st}</span>${x.venue ? ' · ' + esc(x.venue) : ''}</span></td></tr>`; }).join('\n')}
-</tbody></table></div></section>
-<aside class="callout"><p><strong>Is this your business?</strong> Email <strong class="sel">${esc(config.contactEmail)}</strong> to correct your listing. Show organizers add dealer lists to their show pages.</p></aside>` });
+</tbody></table></div></section>` : ''}
+<aside class="callout"><p><strong>Is this your business?</strong> Email <strong class="sel">${esc(config.contactEmail)}</strong> to add your website and specialties, or to correct your listing.</p></aside>` });
   }
   // where each dealer is based (their city), for "dealers near me"
   const dealerLL = e => { const c = e.city && e.st ? CITIES[normCity(e.city) + '|' + e.st] : null; return c || null; };
   const dStates = [...new Set(dealers.map(e => e.st).filter(st => STATES[st]))].sort((a, b) => STATES[a].localeCompare(STATES[b]));
   page({ p: 'dealers/', active: 'dealers', noindex: dealers.length < 10, title: `Coin Dealers Near You | ${NAME}`,
     desc: `Find coin dealers near you and the next show where you can meet them. ${dealers.length} dealers listed from show organizers' dealer lists.`,
-    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › Dealers</p><h1>Find a coin dealer near you</h1><p class="lede">Enter your ZIP code to see the dealers based closest to you, and the next show where you can meet them at their table.</p></div>
+    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › Dealers</p><h1>Find a coin dealer near you</h1><p class="lede">Find dealers by name, specialty or state, and the next show where you can meet them at their table. Enter your ZIP code to see dealers based near you first.</p></div>
 ${dealers.length ? `<section class="block dealer-finder" aria-label="Dealers">
 <form id="dealer-near" class="near-form dealer-near" novalidate role="search" aria-label="Find dealers near a ZIP code">
 <label for="dealer-zip" class="near-label">Your ZIP code</label>
@@ -920,11 +933,12 @@ ${dealers.length ? `<section class="block dealer-finder" aria-label="Dealers">
 </form>
 <div class="dealer-filter-row">${dealers.length > 15 ? `<div class="dealer-search" role="search"><label for="dealer-find">Find a dealer by name</label><input id="dealer-find" type="search" placeholder="Dealer name" autocomplete="off" data-filter-list="dealer-index"></div>` : ''}
 ${dStates.length > 1 ? `<label class="dealer-state" for="dealer-state">State<select id="dealer-state"><option value="">All states</option>${dStates.map(st => `<option value="${st}">${STATES[st]}</option>`).join('')}</select></label>` : ''}</div>
-<p class="muted dl-count-note" id="dealer-sort-note">${dealers.length} dealer${dealers.length === 1 ? '' : 's'}, A to Z</p>
-<ul class="dealers" id="dealer-index"${dealers.length > 40 ? ' data-paginate="40"' : ''}>${dealers.map(e => { const ll = dealerLL(e); return `<li data-st="${esc(e.st || '')}"${ll ? ` data-la="${ll[0]}" data-lo="${ll[1]}"` : ''}><span class="dl-name"><a href="${h(e.path)}">${esc(e.name)}</a></span><span class="dl-table dl-count"><span class="dl-mi"></span>${e.stops.length} show${e.stops.length === 1 ? '' : 's'}</span><span class="dl-loc">${esc([e.city, e.st].filter(Boolean).join(', '))}${e.city || e.st ? ' · ' : ''}Next: <a href="${h(e.stops[0].s.path)}">${esc(e.stops[0].s.name)}</a>, ${esc(shortDate(e.stops[0].s))}</span></li>`; }).join('')}</ul>
+${dealers.some(e => e.specs.length) ? `<div class="fchips dealer-spec-chips" role="group" aria-label="Specialty"><button type="button" class="fchip" data-spec="" aria-pressed="true">All dealers</button>${SPECIALTIES.filter(sp => dealers.some(e => e.specs.includes(sp))).map(sp => `<button type="button" class="fchip" data-spec="${SPEC_ID[sp]}" aria-pressed="false">${esc(sp)}</button>`).join('')}</div>` : ''}
+<p class="muted dl-count-note" id="dealer-sort-note" data-noloc="${dealers.filter(e => !dealerLL(e)).length}">${dealers.length} dealer${dealers.length === 1 ? '' : 's'}, A to Z</p>
+<ul class="dealers" id="dealer-index"${dealers.length > 40 ? ' data-paginate="40"' : ''}>${dealers.map(e => { const ll = dealerLL(e); return `<li data-st="${esc(e.st || '')}" data-sp="${e.specs.map(x => SPEC_ID[x]).join(' ')}"${ll ? ` data-la="${ll[0]}" data-lo="${ll[1]}"` : ''}><span class="dl-name"><a href="${h(e.path)}">${esc(e.name)}</a>${e.verified ? ' <span class="dl-ok" title="Verified dealer">✓</span>' : ''}</span><span class="dl-table dl-count"><span class="dl-mi"></span>${e.stops.length > 1 ? e.stops.length + ' shows' : ''}</span><span class="dl-loc">${e.city || e.st ? esc([e.city, e.st].filter(Boolean).join(', ')) : '<span class="dl-noloc">Location not listed</span>'} · Next: <a href="${h(e.stops[0].s.path)}">${esc(e.stops[0].s.name)}</a>, ${esc(shortDate(e.stops[0].s))}${e.specs.length ? `<span class="dl-specs">${e.specs.map(x => esc(x)).join(' · ')}</span>` : ''}</span></li>`; }).join('')}</ul>
 <nav class="pager" data-pager-for="dealer-index" aria-label="Dealer pages" hidden></nav>
 <p class="empty" data-empty-for-filter="dealer-index" hidden>No dealer matches that search.</p>
-<p class="muted small">Dealers are listed by the city they are based in, from show organizers' dealer lists. Many dealers do business mainly at shows, so check their next show.</p></section>` : '<p class="muted">No dealer lists have been posted yet.</p>'}
+<p class="muted small">Dealers come from show organizers' dealer lists and are listed by the city they are based in. Some lists do not include a city. Many dealers do business mainly at shows, so check their next show.</p></section>` : '<p class="muted">No dealer lists have been posted yet.</p>'}
 <aside class="callout"><p><strong>Run a coin show?</strong> Open your show's page and tap <strong>Upload dealer list</strong>. A PDF, Excel or CSV file works. It is free.</p></aside>` });
 
   // About
@@ -973,6 +987,36 @@ ${config.googleAnalyticsId ? '<li><strong>Visitor statistics.</strong> We use Go
     body: h => `<div class="page-head"><h1>We couldn't find that page</h1><p class="lede">The show may have ended, or the link may be old.</p></div><p><a class="btn btn-primary" href="${h('')}">See upcoming coin shows</a></p>` });
   SITEDATA.pages = SITEDATA.pages.filter(p => p !== '404/');
 }
+
+/* ---------- dealer profiles: the "Dealer Profiles" tab (specialties, website, verified) ---------- */
+/* data/dealer-profiles.csv: key, specialties, website, verified. */
+function applyDealerProfiles(dealers) {
+  const f = path.join(ROOT, 'data/dealer-profiles.csv');
+  if (!fs.existsSync(f)) return;
+  const byKey = new Map(dealers.map(e => [e.key, e]));
+  for (const r of parseCSV(fs.readFileSync(f, 'utf8'))) {
+    const e = byKey.get((r.key || '').trim());
+    if (!e) continue;
+    const want = splitList(r.specialties).map(x => SPECIALTIES.find(sp => sp.toLowerCase() === x.toLowerCase())).filter(Boolean);
+    e.specs = SPECIALTIES.filter(sp => want.includes(sp));
+    if ((r.website || '').trim()) e.website = r.website.trim();
+    e.verified = yes(r.verified);
+  }
+}
+const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
+const webLabel = w => w.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '');
+/* One calendar file with every upcoming show for a dealer. Subscribed calendars refresh by themselves. */
+function dealerIcs(e) {
+  const x = t => String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  const host = SITE.replace(/^https?:\/\//, '') || 'thecoincalendar.com';
+  const ev = e.stops.map(({ s, table }) => ['BEGIN:VEVENT', `UID:${e.key}-${s.slug}@${host}`, `DTSTAMP:${compact(todayISO)}T000000Z`,
+    `DTSTART;VALUE=DATE:${compact(s.start)}`, `DTEND;VALUE=DATE:${compact(addDays(s.end, 1))}`,
+    `SUMMARY:${x(e.name + ' at ' + s.name + (table ? ' (table #' + String(table).replace(/^#/, '') + ')' : ''))}`,
+    `LOCATION:${x(fullAddress(s))}`, `DESCRIPTION:${x('Confirm dates with the organizer before you travel.')}`, `URL:${SITE}/${s.path}`, 'END:VEVENT'].join('\r\n'));
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${NAME}//EN`, 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    `X-WR-CALNAME:${x(e.name + ' coin shows')}`, 'REFRESH-INTERVAL;VALUE=DURATION:P1D', 'X-PUBLISHED-TTL:P1D', ...ev, 'END:VCALENDAR', ''].join('\r\n');
+}
+const verifiedTag = e => e.verified ? ' <span class="tag tag-verified">✓ Verified dealer</span>' : '';
 
 /* ---------- main ---------- */
 async function main() {
