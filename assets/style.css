@@ -489,9 +489,16 @@ tr.is-major .dtile .tm{color:var(--brass-dark)}
 .cal-dl{font-size:15px;text-align:center}
 .dn-go{grid-column:1;margin-top:6px;font-weight:700;color:var(--wine);font-size:16px}
 .dealer-next:hover .dn-go{text-decoration:underline}
-@media (max-width:760px){.dealer-actions .btn,.cal-menu{flex:1 1 100%}.cal-menu summary{width:100%}.cal-pop{position:static;width:auto;margin-top:6px;box-shadow:none}}
+@media (max-width:760px){.da-num{display:none}.dealer-actions .btn{flex:1 1 40%}.dealer-actions .da-wide,.cal-menu{flex:1 1 100%}.cal-menu summary{width:100%}.cal-pop{position:static;width:auto;margin-top:6px;box-shadow:none}}
 /* dealers list */
 .dl-noloc{font-style:italic}
 .dl-ok{color:var(--wine);font-weight:700}
 .dl-specs{display:block;color:var(--wine);font-size:15px;font-weight:600}
 .dealer-spec-chips{margin:4px 0 12px}
+/* dealer profile: logo, tags */
+.dealer-id{display:flex;gap:18px;align-items:center}
+.dealer-logo{width:88px;height:88px;object-fit:contain;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;flex:none}
+.dealer-tags{display:flex;flex-wrap:wrap;gap:12px 32px}
+.dt-k{display:block;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.dealer-groups li{background:var(--brass-tint);border:1px solid var(--brass);color:var(--brass-dark);font-weight:600}
+@media (max-width:760px){.dealer-logo{width:64px;height:64px}.dealer-id{gap:12px;align-items:flex-start}}
