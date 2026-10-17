@@ -194,6 +194,14 @@
   var daysEl = document.getElementById('days');
   var data = null, zip3 = null, here = null, mode = '', curDay = '', hits = [], limit = 20;
 
+  var specs = document.querySelector('.dealer-spec-chips');
+  if (specs) specs.addEventListener('click', function (e) {
+    var c = e.target.closest('.fchip'); if (!c) return;
+    specs.querySelectorAll('.fchip').forEach(function (x) { x.setAttribute('aria-pressed', x === c ? 'true' : 'false'); });
+    var v = c.getAttribute('data-spec');
+    items.forEach(function (li) { li._sp = !!v && (' ' + li.getAttribute('data-sp') + ' ').indexOf(' ' + v + ' ') === -1; if (!list._pager) li.hidden = li._sp || li._st; });
+    if (list._pager) list._pager(true);
+  });
   var saved = store('bb-zip'); if (saved && /^\d{5}$/.test(saved)) zipIn.value = saved;
   var savedR = store('bb-radius'); if (savedR && radIn) radIn.value = savedR;
 
@@ -371,7 +379,8 @@
       });
       items.slice().sort(function (a, b) { return a._mi - b._mi; }).forEach(function (li) { list.appendChild(li); });
       if (list._pager) list._pager(true);
-      note.textContent = total + ' dealer' + (total === 1 ? '' : 's') + ', nearest to ' + z + ' first';
+      var noloc = parseInt(note.getAttribute('data-noloc'), 10) || 0;
+      note.textContent = total + ' dealer' + (total === 1 ? '' : 's') + ', nearest to ' + z + ' first' + (noloc ? ' · ' + noloc + ' without a listed city are at the end' : '');
       if (scroll) list.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }).catch(function () { err.textContent = 'Could not load. Check your connection and try again.'; err.hidden = false; });
   }
@@ -384,6 +393,14 @@
   if (stSel) stSel.addEventListener('change', function () {
     var v = stSel.value;
     items.forEach(function (li) { li._st = !!v && li.getAttribute('data-st') !== v; if (!list._pager) li.hidden = li._st; });
+    if (list._pager) list._pager(true);
+  });
+  var specs = document.querySelector('.dealer-spec-chips');
+  if (specs) specs.addEventListener('click', function (e) {
+    var c = e.target.closest('.fchip'); if (!c) return;
+    specs.querySelectorAll('.fchip').forEach(function (x) { x.setAttribute('aria-pressed', x === c ? 'true' : 'false'); });
+    var v = c.getAttribute('data-spec');
+    items.forEach(function (li) { li._sp = !!v && (' ' + li.getAttribute('data-sp') + ' ').indexOf(' ' + v + ' ') === -1; if (!list._pager) li.hidden = li._sp || li._st; });
     if (list._pager) list._pager(true);
   });
   var saved = store('bb-zip');
@@ -403,7 +420,7 @@
     }
     function draw(reset) {
       if (reset) page = 1;
-      var left = [].filter.call(list.children, function (li) { return !li._q && !li._st; });
+      var left = [].filter.call(list.children, function (li) { return !li._q && !li._st && !li._sp; });
       var pages = Math.max(1, Math.ceil(left.length / per));
       if (page > pages) page = pages;
       [].forEach.call(list.children, function (li) { li.hidden = true; });
@@ -427,5 +444,19 @@
     });
     list._pager = draw;
     draw(true);
+  });
+})();
+
+/* ----- "Add their shows to my calendar": subscribe links that work on any web address ----- */
+(function () {
+  'use strict';
+  document.querySelectorAll('[data-ics-sub],[data-ics-google]').forEach(function (a) {
+    var file = new URL(a.getAttribute('data-ics-sub') || a.getAttribute('data-ics-google'), location.href);
+    var webcal = 'webcal://' + file.host + file.pathname;
+    a.href = a.hasAttribute('data-ics-sub') ? webcal : 'https://calendar.google.com/calendar/render?cid=' + encodeURIComponent(webcal);
+  });
+  // close the calendar menu when tapping elsewhere
+  document.addEventListener('click', function (e) {
+    document.querySelectorAll('details.cal-menu[open]').forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute('open'); });
   });
 })();

@@ -473,3 +473,25 @@ tr.is-major .dtile .tm{color:var(--brass-dark)}
 /* show page: heading on the left, dealer search on the right (stacks on phones) */
 .dealer-search-head{flex:0 1 420px;margin:0}
 @media (max-width:760px){.dealer-search-head{flex:1 1 100%}}
+/* dealer profile */
+.tag-verified{background:var(--wine-tint);color:var(--wine);border:1px solid var(--wine)}
+.page-head h1 .tag-verified{font-family:var(--sans);font-size:13px;vertical-align:middle;margin-left:10px;white-space:nowrap}
+.dealer-top{display:flex;flex-direction:column;gap:18px}
+.dealer-top .page-head{margin-bottom:4px}
+.dealer-specs{margin:0}
+.dealer-actions{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 6px;align-items:flex-start}
+.cal-menu{position:relative}
+.cal-menu summary{list-style:none}
+.cal-menu summary::-webkit-details-marker{display:none}
+.cal-menu summary::after{content:"▾";margin-left:8px;font-size:14px}
+.cal-pop{position:absolute;z-index:15;top:calc(100% + 6px);left:0;width:min(340px,calc(100vw - 32px));background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(20,35,29,.15);padding:14px;display:grid;gap:8px}
+.cal-pop p{margin:0 0 4px}
+.cal-dl{font-size:15px;text-align:center}
+.dn-go{grid-column:1;margin-top:6px;font-weight:700;color:var(--wine);font-size:16px}
+.dealer-next:hover .dn-go{text-decoration:underline}
+@media (max-width:760px){.dealer-actions .btn,.cal-menu{flex:1 1 100%}.cal-menu summary{width:100%}.cal-pop{position:static;width:auto;margin-top:6px;box-shadow:none}}
+/* dealers list */
+.dl-noloc{font-style:italic}
+.dl-ok{color:var(--wine);font-weight:700}
+.dl-specs{display:block;color:var(--wine);font-size:15px;font-weight:600}
+.dealer-spec-chips{margin:4px 0 12px}
