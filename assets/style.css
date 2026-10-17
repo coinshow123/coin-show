@@ -470,3 +470,6 @@ tr.is-major .dtile .tm{color:var(--brass-dark)}
 .dealer-state{flex:1 1 200px;max-width:280px;display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:16px}
 .dealer-state select{min-height:56px;border-width:2px;font-size:18px}
 .dl-count-note{margin:0 0 10px}
+/* show page: heading on the left, dealer search on the right (stacks on phones) */
+.dealer-search-head{flex:0 1 420px;margin:0}
+@media (max-width:760px){.dealer-search-head{flex:1 1 100%}}
