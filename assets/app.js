@@ -163,9 +163,18 @@
   document.querySelectorAll('[data-filter-list]').forEach(function (inp) {
     var list = document.getElementById(inp.getAttribute('data-filter-list'));
     var none = document.querySelector('[data-empty-for-filter="' + list.id + '"]');
+    var plain = function (t) { return String(t || '').toLowerCase().replace(/[^a-z0-9#]+/g, ' ').trim(); };
     inp.addEventListener('input', function () {
-      var q = inp.value.trim().toLowerCase(), shown = 0;
-      [].forEach.call(list.children, function (li) { var hit = !q || li.textContent.toLowerCase().indexOf(q) > -1; li.hidden = !hit; if (hit) shown++; });
+      var q = plain(inp.value), shown = 0;
+      [].forEach.call(list.children, function (li) {
+        // dealer lists search the name (and the table number); other lists search all their text
+        var name = li.querySelector('.dl-name'), tb = li.querySelector('.dl-table:not(.dl-count)');
+        var hay = name ? plain(name.textContent) + ' ' + (tb ? plain(tb.textContent) : '') : plain(li.textContent);
+        var hit = !q || hay.indexOf(q) > -1 || (tb && plain(tb.textContent).replace(/#/g, '').split(' ').indexOf(q.replace(/#/g, '')) > -1);
+        if (list._pager) li._q = !hit; else li.hidden = !hit;
+        if (hit) shown++;
+      });
+      if (list._pager) list._pager(true);
       if (none) none.hidden = shown > 0;
     });
   });
@@ -361,6 +370,7 @@
         li.querySelector('.dl-mi').textContent = !isFinite(li._mi) ? '' : li._mi < 5 ? 'Nearby · ' : Math.round(li._mi) + ' mi · ';
       });
       items.slice().sort(function (a, b) { return a._mi - b._mi; }).forEach(function (li) { list.appendChild(li); });
+      if (list._pager) list._pager(true);
       note.textContent = total + ' dealer' + (total === 1 ? '' : 's') + ', nearest to ' + z + ' first';
       if (scroll) list.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }).catch(function () { err.textContent = 'Could not load. Check your connection and try again.'; err.hidden = false; });
@@ -373,8 +383,49 @@
   });
   if (stSel) stSel.addEventListener('change', function () {
     var v = stSel.value;
-    items.forEach(function (li) { li.hidden = !!v && li.getAttribute('data-st') !== v; });
+    items.forEach(function (li) { li._st = !!v && li.getAttribute('data-st') !== v; if (!list._pager) li.hidden = li._st; });
+    if (list._pager) list._pager(true);
   });
   var saved = store('bb-zip');
   if (saved && /^\d{5}$/.test(saved)) { zipIn.value = saved; run(saved, false); }
+})();
+
+/* ----- Long dealer lists: 40 a page, with page buttons. Search and filters page through what is left. ----- */
+(function () {
+  'use strict';
+  document.querySelectorAll('[data-paginate]').forEach(function (list) {
+    var per = parseInt(list.getAttribute('data-paginate'), 10) || 40;
+    var nav = document.querySelector('[data-pager-for="' + list.id + '"]');
+    if (!nav) return;
+    var page = 1;
+    function btn(label, n, cur, aria) {
+      return '<button type="button" class="pg' + (cur ? ' on' : '') + '" data-pg="' + n + '"' + (cur ? ' aria-current="page"' : '') + (aria ? ' aria-label="' + aria + '"' : '') + '>' + label + '</button>';
+    }
+    function draw(reset) {
+      if (reset) page = 1;
+      var left = [].filter.call(list.children, function (li) { return !li._q && !li._st; });
+      var pages = Math.max(1, Math.ceil(left.length / per));
+      if (page > pages) page = pages;
+      [].forEach.call(list.children, function (li) { li.hidden = true; });
+      left.forEach(function (li, i) { li.hidden = i < (page - 1) * per || i >= page * per; });
+      if (left.length <= per) { nav.hidden = true; nav.innerHTML = ''; return; }
+      var nums = [], add = function (n) { if (nums.indexOf(n) === -1 && n >= 1 && n <= pages) nums.push(n); };
+      add(1); for (var n = page - 1; n <= page + 1; n++) add(n); add(pages);
+      nums.sort(function (a, b) { return a - b; });
+      var html = page > 1 ? btn('‹ Prev', page - 1, false, 'Previous page') : '';
+      nums.forEach(function (n, i) { if (i && n - nums[i - 1] > 1) html += '<span class="pg-gap">…</span>'; html += btn(n, n, n === page, 'Page ' + n); });
+      if (page < pages) html += btn('Next ›', page + 1, false, 'Next page');
+      var from = (page - 1) * per + 1, to = Math.min(page * per, left.length);
+      nav.innerHTML = '<p class="pg-note">Showing ' + from + '–' + to + ' of ' + left.length + '</p><div class="pg-row">' + html + '</div>';
+      nav.hidden = false;
+    }
+    nav.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-pg]'); if (!b) return;
+      page = parseInt(b.getAttribute('data-pg'), 10); draw(false);
+      var top = list.getBoundingClientRect().top + window.pageYOffset - 90;
+      if (window.pageYOffset > top) window.scrollTo({ top: top, behavior: 'smooth' });
+    });
+    list._pager = draw;
+    draw(true);
+  });
 })();
