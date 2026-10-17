@@ -203,25 +203,83 @@ function cleanShows(rows) {
 /* ---------- dealer pages ----------
    Every dealer in a show's dealer list gets a page listing all the upcoming shows they will be at.
    The same business in the same state is one dealer, even if the name is typed slightly differently. */
-const dealerKey = d => slugify(String(d.name).replace(/^the\s+/i, '').replace(/[,.]?\s*\b(inc|llc|l\.l\.c|co|corp|company|ltd)\b\.?$/i, '')) + (d.st ? '-' + d.st.toLowerCase() : '');
+/* ---------- one dealer, many spellings ----------
+   Organizers type names differently: "Schuch, John - RC" and "John Schuch RC", or a list with no state.
+   We match dealers by the words in their name, written the same way (ignoring LLC/Inc/&/punctuation), plus small typos
+   like "Rinkor" and "Rinker". Two dealers are only joined when their states agree or one list has no state,
+   so "World Coins" in Texas and "World Coins" in Florida stay separate. */
+const NAME_SKIP = new Set(['the', 'and', 'inc', 'llc', 'co', 'corp', 'company', 'ltd', 'incorporated', 'l', 'c']);
+const nameWords = n => [...new Set(niceDealerName(n).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(t => t && !NAME_SKIP.has(t)))];
+/* "Schuch, John - RC" -> "John Schuch RC", "Abbott, Mike" -> "Mike Abbott". Company names like "Rinkor Rare Coins, LLC" stay. */
+function niceDealerName(n) {
+  const s = String(n).trim().replace(/[’‘]/g, "'"), m = s.match(/^([A-Za-z'’.-]+),\s+([A-Za-z]+(?:\s+[A-Za-z]\.?)?)(?:\s+[-–]\s+(.+))?$/);
+  let out = s;
+  if (m && !/^(inc|llc|ltd|co|corp|intl|jr|sr)\.?$/i.test(m[2])) out = [m[2], m[1], m[3]].filter(Boolean).join(' ');
+  out = out.replace(/^(.+),\s*the$/i, 'The $1');                        // "Penny Lady, The" -> "The Penny Lady"
+  // initials that lost their capitals: "Dlrc" -> "DLRC" (no vowels, so not a word)
+  out = out.replace(/\b[A-Za-z][bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ]{2,4}\b/g, w => /^(mrs?|drs?|st|mt|ft|jr|sr|ltd|llc|inc|bros?)$/i.test(w) || /[aeiouy]/i.test(w) ? w : w.toUpperCase());
+  return out;
+}
+function oneEdit(a, b) {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0, j = 0, diff = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++diff > 1) return false;
+    if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; }
+  }
+  return diff + (a.length - i) + (b.length - j) <= 1;
+}
+function sameDealerWords(a, b) {
+  if (a.length !== b.length || !a.length) return false;
+  let typos = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] === b[i]) continue;
+    if (a.length < 2 || a[i].length < 5 || !oneEdit(a[i], b[i]) || ++typos > 1) return false;   // never guess on one-word names
+  }
+  return true;
+}
+const dealerSlug = (name, st) => slugify(niceDealerName(name).replace(/^the\s+/i, '').replace(/[,.]?\s*\b(inc|llc|l\.l\.c|co|corp|company|ltd)\b\.?$/i, '')) + (st ? '-' + st.toLowerCase() : '');
 function collectDealers(upcoming) {
-  const map = new Map();
-  for (const s of upcoming) for (const d of s.dealers) {
-    const k = dealerKey(d);
-    if (!k) continue;
-    if (!map.has(k)) map.set(k, { key: k, names: {}, city: d.city, st: d.st, stops: [] });
-    const e = map.get(k);
-    e.names[d.name] = (e.names[d.name] || 0) + 1;
-    if (!e.city && d.city) e.city = d.city;
-    if (!e.stops.some(x => x.s === s)) e.stops.push({ s, table: d.table });
-    d.path = 'dealer/' + k + '/';
+  const recs = [];
+  for (const s of upcoming) for (const d of s.dealers) { const w = nameWords(d.name); if (w.length) recs.push({ s, d, w, st: d.st || '' }); }
+  // records that know their state go first, so a list without states can join them
+  recs.sort((a, b) => (b.st ? 1 : 0) - (a.st ? 1 : 0));
+  const groups = [];
+  for (const r of recs) {
+    const fits = groups.filter(g => sameDealerWords(g.w, r.w) && (!r.st || !g.st || g.st === r.st));
+    // without a state, only join when there is exactly one match; otherwise we cannot tell which dealer it is
+    let g = r.st ? fits.find(x => x.st === r.st) || fits.find(x => !x.st) : (fits.length === 1 ? fits[0] : null);
+    if (!g) { g = { w: r.w, st: r.st, recs: [] }; groups.push(g); }
+    if (!g.st && r.st) g.st = r.st;
+    g.recs.push(r);
   }
-  for (const e of map.values()) {
-    e.name = Object.entries(e.names).sort((a, b) => b[1] - a[1])[0][0];
-    e.path = 'dealer/' + e.key + '/';
+  const used = new Set(), out = [], joined = [];
+  for (const g of groups) {
+    // the name to show: the spelling used most, written the nice way; a list with a state wins ties
+    const votes = {};
+    g.recs.forEach(r => { const n = niceDealerName(r.d.name); votes[n] = (votes[n] || 0) + (r.st ? 1.01 : 1); });
+    const name = Object.entries(votes).sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0][0];
+    const spellings = [...new Set(g.recs.map(r => r.d.name))];
+    if (spellings.length > 1) joined.push(spellings.join('  =  '));
+    let key = dealerSlug(name, g.st);
+    while (used.has(key)) key += '-2';
+    used.add(key);
+    const withPlace = g.recs.find(r => r.d.city) || {};
+    const e = { key, name, city: withPlace.d ? withPlace.d.city : '', st: g.st, stops: [], path: 'dealer/' + key + '/' };
+    for (const r of g.recs) {
+      r.d.name = name; r.d.path = e.path;
+      if (!r.d.st && g.st) { r.d.st = g.st; if (!r.d.city) r.d.city = e.city; }
+      if (!e.stops.some(x => x.s === r.s)) e.stops.push({ s: r.s, table: r.d.table });
+    }
     e.stops.sort((a, b) => a.s.start.localeCompare(b.s.start));
+    out.push(e);
   }
-  return [...map.values()].sort((a, b) => a.name.replace(/^the\s+/i, '').localeCompare(b.name.replace(/^the\s+/i, '')));
+  if (joined.length) console.log(`Matched ${joined.length} dealer(s) spelled differently on different lists:\n` + joined.map(j => '   ' + j).join('\n'));
+  // keep each show's own list A to Z with the nicer names
+  for (const s of upcoming) s.dealers.sort((a, b) => a.name.replace(/^the\s+/i, '').localeCompare(b.name.replace(/^the\s+/i, '')));
+  return out.sort((a, b) => a.name.replace(/^the\s+/i, '').localeCompare(b.name.replace(/^the\s+/i, '')));
 }
 
 /* ---------- links ---------- */
