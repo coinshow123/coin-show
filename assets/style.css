@@ -449,7 +449,7 @@ tr.is-major .dtile .tm{color:var(--brass-dark)}
 .dl-file a{font-weight:600}
 .promo-btns{flex-wrap:wrap}
 /* page buttons under long dealer lists */
-.pager{display:grid;gap:8px;justify-items:center;margin:16px 0 4px}
+.pager.pager-list{display:grid;gap:8px;justify-items:center;margin:16px 0 4px}
 .pg-note{margin:0;color:var(--muted);font-size:15px;font-variant-numeric:tabular-nums}
 .pg-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
 .pg{font:inherit;font-weight:700;font-size:16px;min-width:44px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--wine);cursor:pointer;font-variant-numeric:tabular-nums}

@@ -433,6 +433,7 @@
       nums.forEach(function (n, i) { if (i && n - nums[i - 1] > 1) html += '<span class="pg-gap">…</span>'; html += btn(n, n, n === page, 'Page ' + n); });
       if (page < pages) html += btn('Next ›', page + 1, false, 'Next page');
       var from = (page - 1) * per + 1, to = Math.min(page * per, left.length);
+      nav.classList.add('pager-list');
       nav.innerHTML = '<p class="pg-note">Showing ' + from + '–' + to + ' of ' + left.length + '</p><div class="pg-row">' + html + '</div>';
       nav.hidden = false;
     }
