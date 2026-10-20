@@ -15,6 +15,8 @@ const fs = require('fs');
 const path = require('path');
 // A fingerprint of the look and the scripts. It changes whenever style.css or app.js changes,
 // so visitors' browsers always load the new files together with the new pages.
+// changes on every publish, so browsers fetch the new show list instead of an old saved copy
+const DATA_V = Date.now().toString(36);
 const ASSET_V = require('crypto').createHash('md5').update(['style.css', 'app.js'].map(f => require('fs').readFileSync(require('path').join(__dirname, 'assets', f), 'utf8')).join('')).digest('hex').slice(0, 8);
 
 const ROOT = __dirname;
@@ -24,7 +26,6 @@ const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'
 const SHEET_URL = process.env.SHEET_CSV_URL || config.sheetCsvUrl || '';
 const SITE = (config.siteUrl || 'https://www.thecoincalendar.com').replace(/\/+$/, '');
 const NAME = config.siteName || 'The Coin Calendar';
-const OPERATOR = config.operator || 'C&C Numismatics LLC';
 /* "Update this show" form. Made by the Google Sheet (Settings > 3) and saved as data/update-form.json. */
 const readJson = f => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); } catch (e) { return null; } };
 const UPDATE_FORM = readJson('data/update-form.json');
@@ -424,7 +425,8 @@ function dateStrip() {
 }
 
 function sponsorCard(h) {
-  const sp = config.sponsor || {};
+  const sp = config.sponsor;
+  if (!sp || !sp.name) return '';   // no sponsor right now
   return `<aside class="sponsor-card" aria-label="Sponsor"><div><span class="sp-k">Sponsor</span><p class="sp-h">Selling a collection? ${esc(sp.line || '')}</p><p class="sp-s">${esc(sp.sub || '')}</p></div><a class="btn btn-ghost" href="${h('sell-your-coins/')}">Get a fair offer</a></aside>`;
 }
 
@@ -587,7 +589,7 @@ function page({ p, title, desc, active, body, jsonld, noindex, near, image }) {
   const ga = config.googleAnalyticsId ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${esc(config.googleAnalyticsId)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${esc(config.googleAnalyticsId)}');</script>` : '';
   const canonical = SITE + '/' + p;
   const html = `<!doctype html>
-<html lang="en">
+<html lang="en" data-v="${DATA_V}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -632,7 +634,7 @@ ${body(h)}
 </main>
 <footer class="foot">
 <div class="wrap foot-in">
-<div><p class="foot-name">${brandHTML()}</p><p class="foot-tag">${esc(config.tagline || '')}${config.founderLine ? ' ' + esc(config.founderLine) : ''}</p><p>Show dates can change. Always confirm with the organizer before you travel.</p><p>${esc(NAME)} is operated by ${esc(OPERATOR)}, which also sponsors this site.</p></div>
+<div><p class="foot-name">${brandHTML()}</p><p class="foot-tag">${esc(config.tagline || '')}</p><p>Show dates can change. Always confirm with the organizer before you travel.</p></div>
 <nav aria-label="Footer"><a href="${h('') + '#all'}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a><a href="${h('dealers/')}">Dealers</a><a href="${h('submit/')}">List your show</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('about/')}">About</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></nav>
 </div>
 <p class="wrap copy">© ${D(todayISO).getUTCFullYear()} ${esc(NAME)}. Listings updated ${buildDateLong}.</p>
@@ -887,7 +889,6 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
 <p class="small">See a wrong date or detail? <a href="${esc(fixMail)}">Report it</a>, or email <strong class="sel">${esc(config.contactEmail)}</strong>. We fix listings quickly.</p>
 </section>
 
-<aside class="sponsor-wide"><span class="sp-k">Sponsor</span><h2>Selling coins at this show?</h2><p>${esc(config.sponsor.name)} buys U.S. coins and paper money. Talk to them before the show.</p><a class="btn btn-gold" href="${h('sell-your-coins/')}">How to sell your coins</a></aside>
 <p class="muted small">Details come from the organizer and public show calendars. Dates can change, so confirm with the organizer before you travel. Page updated ${buildDateLong}.</p>
 </div>
 </article>` });
@@ -915,7 +916,7 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
 
   // Sell your coins
   page({ p: 'sell-your-coins/', active: 'sell', title: `Selling a Coin Collection? How to Get a Fair Offer | ${NAME}`,
-    desc: 'Inherited coins or paper money? How to sell at a coin show and get fair offers, from a working dealer.',
+    desc: 'Inherited coins or paper money? How to sell at a coin show and get fair offers, from people who work the bourse floor.',
     body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › Sell your coins</p><h1>Selling a coin collection?</h1><p class="lede">Inherited coins or paper money can be worth more than you think. A few simple steps protect you from low offers.</p></div>
 <section class="block prose"><h2>Five tips before you sell</h2><ol>
 <li><strong>Don't clean anything.</strong> Cleaning can cut a coin's value in half or more. Leave coins and notes exactly as they are.</li>
@@ -925,8 +926,7 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
 <li><strong>Ask how the offer was made.</strong> A good dealer explains which pieces carry the value and why.</li>
 </ol>
 <p><a href="${h('')}#near">Find a coin show near you</a> to get offers in person.</p></section>
-<aside class="sponsor-wide"><span class="sp-k">Our sponsor</span><h2>${esc(config.sponsor.name)}</h2><p>A professional U.S. coin and paper money dealer, set up at FUN, ANA and West Coast regional shows. Fair, no-pressure offers on single pieces and full collections.</p><a class="btn btn-gold" href="${esc(config.sponsor.url)}" target="_blank" rel="noopener">Contact ${esc(config.sponsor.name)}</a></aside>
-<p class="muted small">${esc(NAME)} is operated by ${esc(OPERATOR)}. We tell you this so you can weigh our sponsor's offer like any other.</p>` });
+` });
 
   // Dealers: one page per dealer + an A to Z index
   for (const e of dealers) {
@@ -1013,7 +1013,7 @@ ${dealers.some(e => e.specs.length) ? `<div class="fchips dealer-spec-chips" rol
 <h2>Where the listings come from</h2>
 <p>Show organizers send us their dates, and we check public show calendars and club websites. We rewrite each listing in our own words and link to the organizer. Dates can change, so always confirm before you travel.</p>
 <h2>Who runs it</h2>
-<p>${esc(NAME)} is operated by ${esc(OPERATOR)}, a professional coin and paper money dealer that sets up at shows across the country. ${esc(config.sponsor.name)} also sponsors the site.</p>
+<p>${esc(NAME)} is run by people who work coin shows, on both sides of the table. Paid or featured listings are always labeled.</p>
 <h2 id="advertise">Advertise or sponsor</h2>
 <p>Grading services, supply companies, auction houses and dealers can reach active collectors here. Email <strong class="sel">${esc(config.contactEmail)}</strong>.</p>
 <h2>Fix a listing</h2>
@@ -1041,7 +1041,7 @@ ${config.googleAnalyticsId ? '<li><strong>Visitor statistics.</strong> We use Go
 <h2>Listings are for information</h2><p>We work to keep show details accurate, but dates, hours, venues and admission can change or be canceled without notice. Confirm with the organizer before you travel. ${esc(NAME)} is not responsible for costs or losses from relying on a listing.</p>
 <h2>We are not part of your purchases</h2><p>Buying, selling and trading at shows happens between you and the dealer or promoter. We do not guarantee any dealer, item or price.</p>
 <h2>Submissions</h2><p>By sending a listing you confirm the details are accurate and that you may share them. We may edit, decline or remove any listing.</p>
-<h2>Paid listings and sponsors</h2><p>Featured listings and sponsor messages are labeled. ${esc(NAME)} is operated by ${esc(OPERATOR)}, which also sponsors the site.</p>
+<h2>Paid listings and sponsors</h2><p>Featured listings and sponsor messages are labeled.</p>
 <h2>Contact</h2><p><strong class="sel">${esc(config.contactEmail)}</strong></p>
 </section>` });
 
