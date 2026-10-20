@@ -246,6 +246,22 @@ function sameDealerWords(a, b) {
   return true;
 }
 const dealerSlug = (name, st) => slugify(niceDealerName(name).replace(/^the\s+/i, '').replace(/[,.]?\s*\b(inc|llc|l\.l\.c|co|corp|company|ltd)\b\.?$/i, '')) + (st ? '-' + st.toLowerCase() : '');
+/* Keys of profiles a dealer has claimed. A claimed key never changes, even if a new list spells the
+   name differently or leaves out the state, so the profile, tick and page address stay with the dealer. */
+function claimedKeys() {
+  const f = path.join(ROOT, 'data/dealer-profiles.csv');
+  return fs.existsSync(f) ? parseCSV(fs.readFileSync(f, 'utf8')).map(r => (r.key || '').trim()).filter(Boolean) : [];
+}
+function claimedKeyFor(g, keys, taken) {
+  const bases = [...new Set(g.recs.map(r => dealerSlug(r.d.name, '')))];
+  const hits = keys.filter(k => !taken.has(k) && bases.some(b => k === b || (k.startsWith(b + '-') && STATES[k.slice(b.length + 1).toUpperCase()])));
+  if (!hits.length) return null;
+  // same state first, then a key with no state, then (only if there is exactly one) a key from another state when the list gave none
+  const st = (g.st || '').toLowerCase();
+  const exact = hits.find(k => st && k.endsWith('-' + st)) || hits.find(k => bases.includes(k));
+  if (exact) return exact;
+  return !st && hits.length === 1 ? hits[0] : null;
+}
 function collectDealers(upcoming) {
   const recs = [];
   for (const s of upcoming) for (const d of s.dealers) { const w = nameWords(d.name); if (w.length) recs.push({ s, d, w, st: d.st || '' }); }
@@ -261,6 +277,9 @@ function collectDealers(upcoming) {
     g.recs.push(r);
   }
   const used = new Set(), out = [], joined = [];
+  // claimed profiles first, so nobody else can take their key
+  const keys = claimedKeys();
+  for (const g of groups) { const k = claimedKeyFor(g, keys, used); if (k) { g.key = k; used.add(k); } }
   for (const g of groups) {
     // the name to show: the spelling used most, written the nice way; a list with a state wins ties
     const votes = {};
@@ -268,14 +287,21 @@ function collectDealers(upcoming) {
     const name = Object.entries(votes).sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0][0];
     const spellings = [...new Set(g.recs.map(r => r.d.name))];
     if (spellings.length > 1) joined.push(spellings.join('  =  '));
-    let key = dealerSlug(name, g.st);
-    while (used.has(key)) key += '-2';
-    used.add(key);
+    let key = g.key;
+    if (key) {
+      // the list left out the state: take it from the claimed profile
+      const tail = key.slice(key.lastIndexOf('-') + 1).toUpperCase();
+      if (!g.st && STATES[tail] && key !== dealerSlug(name, '')) g.st = tail;
+    } else {
+      key = dealerSlug(name, g.st);
+      while (used.has(key)) key += '-2';
+      used.add(key);
+    }
     const withPlace = g.recs.find(r => r.d.city) || {};
     const withWeb = g.recs.find(r => r.d.website) || {};
     const e = { key, name, city: withPlace.d ? withPlace.d.city : '', st: g.st, stops: [], path: 'dealer/' + key + '/', website: withWeb.d ? withWeb.d.website : '', specs: [], groups: [], store: '', phone: '', email: '', logo: '', verified: false };
     for (const r of g.recs) {
-      r.d.name = name; r.d.path = e.path;
+      r.d.name = name; r.d.path = e.path; r.d.entry = e;
       if (!r.d.st && g.st) { r.d.st = g.st; if (!r.d.city) r.d.city = e.city; }
       if (!e.stops.some(x => x.s === r.s)) e.stops.push({ s: r.s, table: r.d.table });
     }
@@ -832,7 +858,7 @@ ${showsContact(s) ? `<div class="kv kv-contact"><dt>Contact</dt><dd>${s.contactN
 <section class="block" id="dealers" aria-labelledby="h-dealers"><div class="block-head"><div><h2 id="h-dealers">Dealers at this show</h2>
 <p class="muted">${s.dealers.length ? `${s.dealers.length} dealer${s.dealers.length === 1 ? '' : 's'}, A to Z` : 'The dealer list has not been posted yet.'}${s.dealerListFile ? ` · <a href="${esc(listHref(s, h))}" target="_blank" rel="noopener"${!/^https?:/i.test(s.dealerListFile) ? ' download' : ''}>Organizer's full list${/\.pdf($|\?)/i.test(s.dealerListFile) ? ' (PDF)' : ''}</a>` : ''}</p></div>
 ${s.dealers.length > 15 ? `<div class="dealer-search dealer-search-head" role="search"><label for="dealer-find">Find a dealer</label><input id="dealer-find" type="search" placeholder="Dealer name or table number" autocomplete="off" data-filter-list="dealer-list"></div>` : ''}</div>
-${s.dealers.length ? `<ul class="dealers" id="dealer-list"${s.dealers.length > 40 ? ' data-paginate="40"' : ''}>${s.dealers.map(d => `<li><span class="dl-name">${d.path ? `<a href="${h(d.path)}">${esc(d.name)}</a>` : esc(d.name)}</span>${d.table ? ` <span class="dl-table">#${esc(String(d.table).replace(/^#/, ''))}</span>` : ''}${d.city || d.st ? ` <span class="dl-loc">${esc([d.city, d.st].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>
+${s.dealers.length ? `<ul class="dealers" id="dealer-list"${s.dealers.length > 40 ? ' data-paginate="40"' : ''}>${s.dealers.map(d => `<li><span class="dl-name">${d.path ? `<a href="${h(d.path)}">${esc(d.name)}</a>` : esc(d.name)}${d.entry && d.entry.verified ? vTick() : ''}</span>${d.table ? ` <span class="dl-table">#${esc(String(d.table).replace(/^#/, ''))}</span>` : ''}${d.city || d.st ? ` <span class="dl-loc">${esc([d.city, d.st].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>
 <nav class="pager" data-pager-for="dealer-list" aria-label="Dealer list pages" hidden></nav>
 <p class="empty" data-empty-for-filter="dealer-list" hidden>No dealer matches that search.</p>` : `<p class="small app-none">Organizer? <a href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">Upload your dealer list</a> (PDF, Excel or CSV) and we will add it here.</p>`}
 ${s.dealerApp ? `<div class="dealer-app"><div><strong>Want a table at this show?</strong><span class="muted"> Download the organizer's dealer application, fill it out and send it to them.</span></div><a class="btn btn-primary" href="${esc(appHref(s, h))}" target="_blank" rel="noopener"${!/^https?:/i.test(s.dealerApp) ? ' download' : ''}>${appLabel(s)}</a></div>` : `<p class="small app-none">The dealer application for this show has not been posted yet. <a href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">Organizer? Upload it here.</a></p>`}
@@ -909,18 +935,46 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
     page({ p: e.path, active: 'dealers', noindex: !rich, title: `${e.name}: Upcoming Coin Shows${loc ? ' | ' + loc : ''} | ${NAME}`,
       desc: `Where is ${e.name} next? ${e.stops.length} upcoming coin show${e.stops.length === 1 ? '' : 's'}${loc ? ' for this ' + loc + ' dealer' : ''}, with dates, cities and table numbers.`,
       jsonld: { '@context': 'https://schema.org', '@type': 'Organization', name: e.name, url: e.website ? webHref(e.website) : `${SITE}/${e.path}`, logo: e.logo ? `${SITE}/dealer-logos/${e.logo}` : undefined, telephone: e.phone || undefined, address: loc ? { '@type': 'PostalAddress', addressLocality: e.city || undefined, addressRegion: e.st || undefined, addressCountry: 'US' } : undefined },
-      body: h => `<div class="dealer-top"><div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('dealers/')}">Dealers</a> › ${esc(e.name)}</p>
-${e.logo ? `<div class="dealer-id"><img class="dealer-logo" src="${h('dealer-logos/' + e.logo)}" alt="${esc(e.name)} logo" width="88" height="88"><div>` : ''}<h1>${esc(e.name)}${verifiedTag(e)}</h1><p class="lede">${loc ? `Coin dealer from ${esc(loc)}. ` : ''}${e.stops.length === 1 ? 'Find them at their next show.' : `${e.stops.length} upcoming shows where you can find them.`}</p>${e.logo ? '</div></div>' : ''}</div>
-${e.verified ? '' : `<div class="owner-bar"><p><strong>Is this your business?</strong> Claim this profile free. Add your specialties, logo and website, and get a ✓ Verified badge.</p><a class="btn btn-gold btn-sm" href="${esc(dealerClaimLink(e))}" target="_blank" rel="noopener">Claim this profile</a></div>`}
-${e.specs.length || e.groups.length ? `<div class="dealer-tags">${e.specs.length ? `<div><span class="dt-k">Specialties</span><ul class="chips dealer-specs">${e.specs.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}${e.groups.length ? `<div><span class="dt-k">Member of</span><ul class="chips dealer-groups">${e.groups.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}</div>` : ''}
-<div class="dealer-actions">${e.website ? `<a class="btn btn-ghost da-wide" href="${esc(webHref(e.website))}" target="_blank" rel="noopener nofollow">Website · ${esc(webLabel(e.website))}</a>` : ''}${e.phone ? `<a class="btn btn-ghost" href="${esc(telHref(e.phone))}" aria-label="Call ${esc(e.phone)}">Call<span class="da-num">&nbsp;${esc(e.phone)}</span></a>` : ''}${e.email ? `<a class="btn btn-ghost" href="mailto:${esc(e.email)}">Email</a>` : ''}${e.store ? `<a class="btn btn-ghost" href="${esc(webHref(e.store))}" target="_blank" rel="noopener nofollow">Shop online</a>` : ''}
-<details class="cal-menu"><summary class="btn btn-ghost">Add their shows to my calendar</summary><div class="cal-pop"><p class="small muted">New shows for ${esc(e.name)} appear in your calendar by themselves.</p><a class="btn btn-primary" data-ics-sub="shows.ics" href="shows.ics">iPhone, Mac or Outlook</a><a class="btn btn-ghost" data-ics-google="shows.ics" href="shows.ics" target="_blank" rel="noopener">Google Calendar</a><a class="cal-dl" href="shows.ics" download="${esc(e.key)}-shows.ics">Download the calendar file</a></div></details></div>
-<a class="dealer-next" href="${h(next.s.path)}"><span class="dn-k">Next show</span><span class="dn-name">${esc(next.s.name)}</span><span class="dn-meta">${esc(nf.date)} · ${esc(next.s.city)}, ${next.s.st}${next.s.venue ? ' · ' + esc(next.s.venue) : ''}</span>${next.table ? `<span class="dn-table">Table ${tableNo(next.table)}</span>` : ''}<span class="dn-go">Show hours, address and directions →</span></a></div>
-${e.stops.length > 1 ? `<section class="block" aria-labelledby="h-dshows"><h2 id="h-dshows">All upcoming shows</h2>
-<div class="table-wrap"><table class="shows"><thead><tr><th scope="col" class="c-date">Date</th><th scope="col" class="c-mi">Table</th><th scope="col">Coin show</th></tr></thead><tbody>
-${e.stops.map(({ s: x, table }) => { const f = fmt(x); return `<tr><td class="c-date"><span class="d">${esc(shortDate(x))}</span><span class="dow">${esc(f.dow)}</span>${dateTile(x)}</td><td class="c-mi">${tableNo(table) || '<span class="muted">–</span>'}</td><td class="c-name"><a href="${h(x.path)}">${esc(x.name)}</a><span class="sub">${esc(x.city)}<span class="st-in">, ${x.st}</span>${x.venue ? ' · ' + esc(x.venue) : ''}</span></td></tr>`; }).join('\n')}
-</tbody></table></div></section>` : ''}
-${e.verified ? `<p class="owner-update small">Is this your business? <a href="${esc(dealerClaimLink(e))}" target="_blank" rel="noopener">Update this profile</a></p>` : ''}` });
+      body: h => {
+        const words = e.name.replace(/^the\s+/i, '').replace(/[^A-Za-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+        const initials = (words.length > 1 ? words.slice(0, 2).map(w => w[0]).join('') : (words[0] || '').slice(0, 2)).toUpperCase();
+        const contacts = [
+          e.website && `<a class="btn sf-btn-main" href="${esc(webHref(e.website))}" target="_blank" rel="noopener nofollow">Visit website</a>`,
+          e.phone && `<a class="btn sf-btn" href="${esc(telHref(e.phone))}" aria-label="Call ${esc(e.phone)}">Call</a>`,
+          e.email && `<a class="btn sf-btn" href="mailto:${esc(e.email)}">Email</a>`,
+          e.store && `<a class="btn sf-btn sf-wide" href="${esc(webHref(e.store))}" target="_blank" rel="noopener nofollow">Shop online</a>`
+        ].filter(Boolean);
+        const about = [
+          loc && ['Based in', esc(loc)],
+          e.specs.length && ['Specialties', e.specs.map(esc).join(', ')],
+          e.groups.length && ['Member of', e.groups.map(esc).join(', ')],
+          e.website && ['Website', `<a href="${esc(webHref(e.website))}" target="_blank" rel="noopener nofollow">${esc(webLabel(e.website))}</a>`],
+          e.phone && ['Phone', `<a href="${esc(telHref(e.phone))}">${esc(e.phone)}</a>`],
+          e.store && ['Online store', `<a href="${esc(webHref(e.store))}" target="_blank" rel="noopener nofollow">${esc(webLabel(e.store))}</a>`]
+        ].filter(Boolean);
+        const later = e.stops.slice(1);
+        return `<div class="sf-page"><div class="page-head sf-crumb"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('dealers/')}">Dealers</a> › ${esc(e.name)}</p></div>
+<section class="sf-hero${contacts.length || !e.verified ? '' : ' sf-noside'}" aria-label="${esc(e.name)}">
+<div class="sf-id">
+${e.logo ? `<img class="sf-logo" src="${h('dealer-logos/' + e.logo)}" alt="${esc(e.name)} logo" width="112" height="112">` : `<div class="sf-logo sf-initials" aria-hidden="true">${esc(initials)}</div>`}
+<div class="sf-text">
+<h1>${esc(e.name)}${e.verified ? vTick('vtick-lg') : ''}</h1>
+<p class="sf-meta">${e.verified ? '<span class="sf-vlabel">Verified dealer</span> · ' : ''}Coin dealer${loc ? ' · ' + esc(loc) : ''}</p>
+${e.specs.length || e.groups.length ? `<ul class="sf-chips">${e.specs.map(x => `<li>${esc(x)}</li>`).join('')}${e.groups.map(x => `<li class="sf-group">${esc(x)}</li>`).join('')}</ul>` : ''}
+</div>
+</div>
+${contacts.length || !e.verified ? `<div class="sf-side">${contacts.length ? `<div class="sf-contact">${contacts.join('')}</div>` : ''}${e.verified ? '' : `<div class="sf-claim"><p><strong>Is this your business?</strong> Claim this profile free. Add your logo, specialties and website, and get the green ${vTick('vtick-sm')} Verified tick.</p><a class="btn btn-gold" href="${esc(dealerClaimLink(e))}" target="_blank" rel="noopener">Claim this profile</a></div>`}</div>` : ''}
+</section>
+<div class="sf-body${about.length ? '' : ' sf-single'}">
+<section class="sf-meet" aria-labelledby="h-meet">
+<div class="sf-meet-head"><h2 id="h-meet">Where to meet them</h2>
+<details class="cal-menu"><summary class="btn btn-ghost btn-sm">Add their shows to my calendar</summary><div class="cal-pop"><p class="small muted">New shows for ${esc(e.name)} appear in your calendar by themselves.</p><a class="btn btn-primary" data-ics-sub="shows.ics" href="shows.ics">iPhone, Mac or Outlook</a><a class="btn btn-ghost" data-ics-google="shows.ics" href="shows.ics" target="_blank" rel="noopener">Google Calendar</a><a class="cal-dl" href="shows.ics" download="${esc(e.key)}-shows.ics">Download the calendar file</a></div></details></div>
+<a class="sf-next" href="${h(next.s.path)}"><span class="sf-next-main"><span class="sf-k">Next show</span><span class="sf-next-name">${esc(next.s.name)}</span><span class="sf-next-meta">${esc(nf.date)} · ${esc(next.s.city)}, ${next.s.st}${next.s.venue ? ' · ' + esc(next.s.venue) : ''}</span></span>${next.table ? `<span class="sf-table"><span class="sf-table-k">Table</span>${tableNo(next.table)}</span>` : ''}<span class="sf-go">Hours, address and directions →</span></a>
+${later.length ? `<ul class="sf-stops">${later.map(({ s: x, table }) => `<li><a href="${h(x.path)}"><span class="sf-date"><span class="sf-mon">${MON[D(x.start).getUTCMonth()].toUpperCase()}</span><span class="sf-days">${D(x.start).getUTCDate()}${x.end !== x.start ? '–' + D(x.end).getUTCDate() : ''}</span></span><span class="sf-stop"><span class="sf-stop-name">${esc(x.name)}</span><span class="sf-stop-meta">${esc(x.city)}, ${x.st}${x.venue ? ' · ' + esc(x.venue) : ''}</span></span>${table ? `<span class="sf-stop-table">${tableNo(table)}</span>` : ''}</a></li>`).join('')}</ul>` : ''}
+</section>
+${about.length ? `<aside class="card sf-about" aria-labelledby="h-about"><h2 id="h-about">About this dealer</h2><dl>${about.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>${e.verified ? `<p class="sf-update">Is this your business? <a href="${esc(dealerClaimLink(e))}" target="_blank" rel="noopener">Update this profile</a></p>` : ''}</aside>` : ''}
+</div></div>`;
+      } });
   }
   // where each dealer is based (their city), for "dealers near me"
   const dealerLL = e => { const c = e.city && e.st ? CITIES[normCity(e.city) + '|' + e.st] : null; return c || null; };
@@ -939,7 +993,7 @@ ${dStates.length > 1 ? `<label class="dealer-state" for="dealer-state">State<sel
 ${dealers.some(e => e.specs.length) ? `<div class="fchips dealer-spec-chips" role="group" aria-label="Specialty"><button type="button" class="fchip" data-spec="" aria-pressed="true">All dealers</button>${SPECIALTIES.filter(sp => dealers.some(e => e.specs.includes(sp))).map(sp => `<button type="button" class="fchip" data-spec="${SPEC_ID[sp]}" aria-pressed="false">${esc(sp)}</button>`).join('')}</div>` : ''}
 <div class="owner-bar owner-bar-sm"><p><strong>Are you a dealer?</strong> Find your name below, open your page and tap <strong>Claim this profile</strong>. Free.</p></div>
 <p class="muted dl-count-note" id="dealer-sort-note" data-noloc="${dealers.filter(e => !dealerLL(e)).length}">${dealers.length} dealer${dealers.length === 1 ? '' : 's'}, A to Z</p>
-<ul class="dealers" id="dealer-index"${dealers.length > 40 ? ' data-paginate="40"' : ''}>${dealers.map(e => { const ll = dealerLL(e); return `<li data-st="${esc(e.st || '')}" data-sp="${e.specs.map(x => SPEC_ID[x]).join(' ')}"${ll ? ` data-la="${ll[0]}" data-lo="${ll[1]}"` : ''}><span class="dl-name"><a href="${h(e.path)}">${esc(e.name)}</a>${e.verified ? ' <span class="dl-ok" title="Verified dealer">✓</span>' : ''}</span><span class="dl-table dl-count"><span class="dl-mi"></span>${e.stops.length > 1 ? e.stops.length + ' shows' : ''}</span><span class="dl-loc">${e.city || e.st ? esc([e.city, e.st].filter(Boolean).join(', ')) : '<span class="dl-noloc">Location not listed</span>'} · Next: <a href="${h(e.stops[0].s.path)}">${esc(e.stops[0].s.name)}</a>, ${esc(shortDate(e.stops[0].s))}${e.specs.length ? `<span class="dl-specs">${e.specs.map(x => esc(x)).join(' · ')}</span>` : ''}</span></li>`; }).join('')}</ul>
+<ul class="dealers" id="dealer-index"${dealers.length > 40 ? ' data-paginate="40"' : ''}>${dealers.map(e => { const ll = dealerLL(e); return `<li data-st="${esc(e.st || '')}" data-sp="${e.specs.map(x => SPEC_ID[x]).join(' ')}"${ll ? ` data-la="${ll[0]}" data-lo="${ll[1]}"` : ''}><span class="dl-name"><a href="${h(e.path)}">${esc(e.name)}</a>${e.verified ? vTick() : ''}</span><span class="dl-table dl-count"><span class="dl-mi"></span>${e.stops.length > 1 ? e.stops.length + ' shows' : ''}</span><span class="dl-loc">${e.city || e.st ? esc([e.city, e.st].filter(Boolean).join(', ')) : '<span class="dl-noloc">Location not listed</span>'} · Next: <a href="${h(e.stops[0].s.path)}">${esc(e.stops[0].s.name)}</a>, ${esc(shortDate(e.stops[0].s))}${e.specs.length ? `<span class="dl-specs">${e.specs.map(x => esc(x)).join(' · ')}</span>` : ''}</span></li>`; }).join('')}</ul>
 <nav class="pager" data-pager-for="dealer-index" aria-label="Dealer pages" hidden></nav>
 <p class="empty" data-empty-for-filter="dealer-index" hidden>No dealer matches that search.</p>
 <p class="muted small">Dealers come from show organizers' dealer lists and are listed by the city they are based in. Some lists do not include a city. Many dealers do business mainly at shows, so check their next show.</p></section>` : '<p class="muted">No dealer lists have been posted yet.</p>'}
@@ -1031,6 +1085,13 @@ function dealerClaimLink(e) {
   return `mailto:${config.contactEmail}?subject=${encodeURIComponent('My dealer profile: ' + e.name)}&body=${encodeURIComponent(`Profile: ${SITE}/${e.path}\nDealer ID: ${e.key}\n\nYour name and role:\nSpecialties (Rare Coins, U.S. Paper Money, World Paper Money, Ancient, Bullion):\nMember of (ANA, PNG...):\nWebsite:\nOnline store:\nPhone for customers:\nEmail for customers:\n\nAttach your logo if you have one.`)}`;
 }
 const telHref = p => 'tel:' + String(p).replace(/[^\d+]/g, '');
+/* Green verified tick: a scalloped badge with a white check. Same green as the site's main buttons. */
+const BADGE_PATH = (() => {
+  const pts = [], n = 12, cx = 12, cy = 12;
+  for (let i = 0; i < n * 2; i++) { const r = i % 2 ? 9.6 : 11.4, a = Math.PI * i / n - Math.PI / 2; pts.push((cx + r * Math.cos(a)).toFixed(2) + ' ' + (cy + r * Math.sin(a)).toFixed(2)); }
+  return 'M' + pts.join('L') + 'Z';
+})();
+const vTick = (cls = '') => `<svg class="vtick${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" role="img" aria-label="Verified dealer"><title>Verified dealer</title><path d="${BADGE_PATH}" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M7.4 12.3l3 3 6.2-6.4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
 const verifiedTag = e => e.verified ? ' <span class="tag tag-verified">✓ Verified dealer</span>' : '';
 
 /* ---------- main ---------- */
