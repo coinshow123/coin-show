@@ -1,5 +1,7 @@
 /* The Coin Calendar page behavior: main menu, major-show slider, date strip,
    20-per-page lists with filter chips, and "near me" (runs in the browser; the ZIP never leaves the device). */
+/* publish version, so a new show list is always downloaded fresh */
+var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
 (function () {
   'use strict';
   var body = document.body;
@@ -208,8 +210,8 @@
   function load() {
     if (data && zip3) return Promise.resolve();
     return Promise.all([
-      fetch(link('assets/shows.json')).then(function (r) { return r.json(); }),
-      fetch(link('assets/zip3.json')).then(function (r) { return r.json(); })
+      fetch(link('assets/shows.json') + DV).then(function (r) { return r.json(); }),
+      fetch(link('assets/zip3.json') + DV).then(function (r) { return r.json(); })
     ]).then(function (res) { data = res[0].filter(function (s) { return s.e >= TODAY; }); zip3 = res[1]; });
   }
   function miles(a, b, c, d) {
@@ -241,12 +243,12 @@
     return list.map(function (o) {
       var s = o.s, f = fmtDate(s.s, s.e);
       return '<tr><td class="c-date"><span class="d">' + esc(f[0]) + '</span><span class="dow">' + esc(f[1]) + '</span><span class="dtile" aria-hidden="true"><span class="tm">' + esc(f[2]) + '</span><span class="td">' + esc(f[3]) + '</span><span class="tw">' + esc(f[1]) + '</span></span></td>' +
-        (withMiles ? '<td class="c-mi">' + Math.round(o.mi) + ' mi</td>' : '<td class="c-st">' + esc(s.st) + '</td>') +
+        (withMiles ? '<td class="c-mi">' + Math.round(o.mi) + ' mi</td>' : '') + '<td class="c-st">' + esc(s.st) + '</td>' +
         '<td class="c-name"><a href="' + esc(link(s.p)) + '">' + esc(s.n) + '</a><span class="sub">' + esc(s.c) + '<span class="st-in">, ' + esc(s.st) + '</span>' + (s.v ? ' · ' + esc(s.v) : '') + '</span></td></tr>';
     }).join('');
   }
   function table(list, withMiles) {
-    return '<div class="table-wrap"><table class="shows"><thead><tr><th scope="col" class="c-date">Date</th>' + (withMiles ? '<th scope="col" class="c-mi">Distance</th>' : '<th scope="col" class="c-st">State</th>') + '<th scope="col">Name of the coin show</th></tr></thead><tbody>' + rowsHTML(list, withMiles) + '</tbody></table></div>';
+    return '<div class="table-wrap"><table class="shows"><thead><tr><th scope="col" class="c-date">Date</th>' + (withMiles ? '<th scope="col" class="c-mi">Distance</th>' : '') + '<th scope="col" class="c-st">State</th>' + '<th scope="col">Name of the coin show</th></tr></thead><tbody>' + rowsHTML(list, withMiles) + '</tbody></table></div>';
   }
   function withDistance(list) {
     return list.map(function (s) { return { s: s, mi: here ? miles(here.lat, here.lon, s.la, s.lo) : 0 }; });
@@ -368,7 +370,7 @@
   var zip3 = null;
   function run(z, scroll) {
     err.hidden = true;
-    (zip3 ? Promise.resolve() : fetch(ROOT + 'assets/zip3.json').then(function (r) { return r.json(); }).then(function (j) { zip3 = j; })).then(function () {
+    (zip3 ? Promise.resolve() : fetch(ROOT + 'assets/zip3.json' + DV).then(function (r) { return r.json(); }).then(function (j) { zip3 = j; })).then(function () {
       var p = zip3[z.slice(0, 3)];
       if (!p) { err.textContent = 'That ZIP code was not found. Check it and try again.'; err.hidden = false; return; }
       store('bb-zip', z);
