@@ -115,6 +115,7 @@ function locate(r, st) {
   if (!isNaN(la) && !isNaN(lo)) return [la, lo];
   const hit = CITIES[normCity(r.city) + '|' + st];
   if (hit) return hit;
+  r.zip = fixZip(r.zip);
   if (/^\d{5}/.test(r.zip || '') && ZIP3[r.zip.slice(0, 3)]) return ZIP3[r.zip.slice(0, 3)];
   warnings.push(`Line ${r._line}: could not find "${r.city}, ${st}" on the map. Using the middle of the state. Add a ZIP code or lat/lon to fix distance.`);
   return CENTERS[st] || [39.8, -98.6];
@@ -142,6 +143,10 @@ function tierOf(v) {
   return 'local';
 }
 
+// some rows type the city into the address too ("420 Forsgate Dr, Cranbury, NJ"); don't say it twice
+const streetOnly = s => String(s.address || '').replace(new RegExp(',?\\s*' + String(s.city || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ',?\\s*(' + s.st + ')?\\s*\\d{0,5}\\s*$', 'i'), '').trim();
+// Sheets drops the leading zero of ZIPs like 08512 (NJ, New England). Put it back.
+const fixZip = z => { z = String(z || '').trim(); return /^\d{3,4}$/.test(z) ? z.padStart(5, '0') : z; };
 const splitList = v => String(v || '').split(/[,;]/).map(x => x.trim()).filter(Boolean);
 const yes = v => /^(y|yes|true|x|1)$/i.test(String(v || '').trim());
 
@@ -189,7 +194,7 @@ function cleanShows(rows) {
     const [la, lo] = locate(r, st);
     const website = /^https?:\/\//i.test(r.website) ? r.website : (r.website ? 'https://' + r.website : '');
     out.push({
-      start, end, name: r.show_name, city: r.city, st, venue: r.venue, address: r.address, zip: r.zip,
+      start, end, name: r.show_name, city: r.city, st, venue: r.venue, address: streetOnly({ address: r.address, city: r.city, st }), zip: fixZip(r.zip),
       tier: tierOf(r.tier), hours: r.hours, admission: r.admission, website, organizer: r.organizer,
       notes: r.notes, confirm: yes(r.confirm_dates), featured: yes(r.featured),
       id: (r.show_id || '').trim().toUpperCase(), tables: r.dealer_tables, parking: r.parking,
