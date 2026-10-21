@@ -305,6 +305,12 @@ function claimedKeyFor(g, keys, taken) {
   if (exact) return exact;
   return !st && hits.length === 1 ? hits[0] : null;
 }
+/* Names one letter apart that are really different companies. Add a pair to config.json "differentDealers" to keep them apart. */
+const NOT_SAME = (config.differentDealers || [['Money Metals', 'Mooney Metals']]).map(p => p.map(n => nameWords(n).join(' ')));
+function notSameDealer(g, r) {
+  const a = r.w.join(' ');
+  return g.recs.some(x => { const b = x.w.join(' '); return NOT_SAME.some(([p, q]) => (p === a && q === b) || (p === b && q === a)); });
+}
 function collectDealers(upcoming) {
   const recs = [];
   for (const s of upcoming) for (const d of s.dealers) { const w = nameWords(d.name); if (w.length) recs.push({ s, d, w, st: d.st || '' }); }
@@ -312,7 +318,7 @@ function collectDealers(upcoming) {
   recs.sort((a, b) => (b.st ? 1 : 0) - (a.st ? 1 : 0));
   const groups = [];
   for (const r of recs) {
-    const fits = groups.filter(g => sameDealerWords(g.w, r.w) && (!r.st || !g.st || g.st === r.st));
+    const fits = groups.filter(g => sameDealerWords(g.w, r.w) && (!r.st || !g.st || g.st === r.st) && !notSameDealer(g, r));
     // without a state, only join when there is exactly one match; otherwise we cannot tell which dealer it is
     let g = r.st ? fits.find(x => x.st === r.st) || fits.find(x => !x.st) : (fits.length === 1 ? fits[0] : null);
     if (!g) { g = { w: r.w, st: r.st, recs: [] }; groups.push(g); }
@@ -661,7 +667,8 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="apple-touch-icon" href="${h('assets/icon-180.png')}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&text=0&display=swap">
 <link rel="stylesheet" href="${h('assets/style.css')}?v=${ASSET_V}">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 ${ga}
@@ -896,6 +903,7 @@ ${listBox(h)}` });
       body: h => `<article class="show${off ? ' is-off' : ''}">
 <p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('state/' + stateSlug(s.st) + '/')}">${n}</a> › ${esc(s.name)}</p>
 ${s.cancelled ? `<div class="notice notice-cancel" role="alert"><p><strong>This show is cancelled.</strong> The ${esc(f.date)} show will not take place.${next ? '' : ' Check with the organizer for a new date.'}</p>${next ? `<a class="btn btn-primary btn-sm" href="${h(next.path)}">Next date: ${esc(fmt(next).date)}</a>` : `<a class="btn btn-ghost btn-sm" href="${h('state/' + stateSlug(s.st) + '/')}">Other shows in ${n}</a>`}</div>` : ''}
+${s.confirm && !off ? `<div class="notice notice-confirm"><p><strong>Please confirm these dates.</strong> Listings for this show disagreed or were incomplete. Check with the organizer before you travel.</p>${s.website ? `<a class="btn btn-ghost btn-sm" href="${esc(s.website)}" target="_blank" rel="noopener">Official website</a>` : ''}</div>` : ''}
 ${ended ? `<div class="notice notice-ended"><p><strong>This show has ended.</strong> It took place ${esc(f.long)}.</p>${next ? `<a class="btn btn-primary btn-sm" href="${h(next.path)}">See the next date: ${esc(fmt(next).date)}</a>` : `<a class="btn btn-ghost btn-sm" href="${h('state/' + stateSlug(s.st) + '/')}">Upcoming shows in ${n}</a>`}</div>` : ''}
 <div class="show-head">
 <figure class="show-cover"><img src="${esc(coverSrc(s, h))}" alt="${s.photos.length ? esc(s.name) + ' photo' : ''}" width="640" height="360">${s.photos.length && s.photoCredit ? `<figcaption>Photo: ${esc(s.photoCredit)}</figcaption>` : ''}</figure>
@@ -914,7 +922,6 @@ ${s.website ? `<a class="btn btn-outline-light" href="${esc(s.website)}" target=
 </div>
 </div>
 <ul class="facts" aria-label="Quick facts">${facts.map(x => `<li>${x}</li>`).join('')}</ul>
-${s.confirm ? '<p class="warn"><strong>Please confirm these dates.</strong> Listings for this show disagreed or were incomplete. Check with the organizer before you travel.</p>' : ''}
 <div class="show-body">
 
 <div class="pair">
