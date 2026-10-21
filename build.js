@@ -97,6 +97,15 @@ function parseCSV(text) {
   });
 }
 
+// last_checked can arrive as 2026-10-20, 10/20/2026 or a full date-time
+function parseChecked(v) {
+  v = String(v || '').trim();
+  if (!v) return '';
+  const d = parseDate(v) || (v.match(/^(\d{4}-\d{2}-\d{2})/) || [])[1] || '';
+  if (d) return d;
+  const t = Date.parse(v);
+  return isNaN(t) ? '' : new Date(t).toISOString().slice(0, 10);
+}
 function parseDate(v) {
   if (!v) return '';
   let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
@@ -206,7 +215,8 @@ async function loadDealers(shows) {
 function cleanShows(rows) {
   const out = [], seen = new Set();
   for (const r of rows) {
-    if ((r.status || '').toLowerCase() !== 'approved') continue;
+    const status = (r.status || '').trim().toLowerCase();
+    if (status !== 'approved' && !/^cancel/.test(status)) continue;
     const where = `Line ${r._line} (${r.show_name || 'no name'})`;
     const start = parseDate(r.start_date), end = parseDate(r.end_date) || start;
     let st = (r.state || '').toUpperCase();
@@ -231,6 +241,7 @@ function cleanShows(rows) {
       // organizer contact: only used when the promoter chose to make it public
       publicContact: yes(r.public_contact), contactName: (r.contact_name || '').trim(), contactPhone: (r.contact_phone || '').trim(), contactEmail: (r.contact_email || '').trim(),
       dealerApp: (r.dealer_application || '').trim(), dealerListFile: (r.dealer_list_file || '').trim(), showId: (r.show_id || '').trim(),
+      cancelled: /^cancel/.test(status), checked: parseChecked(r.last_checked),
       la: Math.round(la * 1000) / 1000, lo: Math.round(lo * 1000) / 1000, slug, path: `show/${slug}/`
     });
   }
@@ -374,8 +385,8 @@ function dateTile(s) {
 }
 function showRow(s, h) {
   const f = fmt(s);
-  const badges = (s.featured ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '') + (s.tier === 'major' ? '<span class="tag tag-major">National</span>' : '') + (isFree(s) ? '<span class="tag tag-free">Free</span>' : '');
-  return `<tr data-s="${s.start}" data-e="${s.end}"${isFree(s) ? ' data-free="1"' : ''}${s.tier === 'major' ? ' class="is-major"' : ''}>
+  const badges = (s.cancelled ? '<span class="tag tag-cancel">Cancelled</span>' : '') + (s.featured && !s.cancelled ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '') + (s.tier === 'major' ? '<span class="tag tag-major">National</span>' : '') + (isFree(s) ? '<span class="tag tag-free">Free</span>' : '');
+  return `<tr data-s="${s.start}" data-e="${s.end}"${isFree(s) ? ' data-free="1"' : ''}${s.cancelled ? ' class="is-cancelled"' : s.tier === 'major' ? ' class="is-major"' : ''}>
 <td class="c-date"><span class="d">${esc(shortDate(s))}</span><span class="dow">${esc(f.dow)}</span>${dateTile(s)}</td>
 <td class="c-st">${s.st}</td>
 <td class="c-name"><a href="${h(s.path)}">${esc(s.name)}</a>${badges}<span class="sub">${esc(s.city)}<span class="st-in">, ${s.st}</span>${s.venue ? ' · ' + esc(s.venue) : ''}</span></td>
@@ -440,7 +451,7 @@ function dateStrip() {
   const days = [];
   for (let i = 0; i < 14; i++) {
     const iso = addDays(todayISO, i), d = D(iso);
-    const n = upcoming.filter(s => s.start <= iso && s.end >= iso).length;
+    const n = upcoming.filter(s => !s.cancelled && s.start <= iso && s.end >= iso).length;
     const first = i === 0 || d.getUTCDate() === 1;
     days.push(`<li><button type="button" class="day${n ? '' : ' zero'}" data-day="${iso}" aria-pressed="false"${n ? '' : ' disabled'} aria-label="${DAY[d.getUTCDay()]}, ${MONTH[d.getUTCMonth()]} ${d.getUTCDate()}: ${n ? n + ' show' + (n === 1 ? '' : 's') : 'no shows'}">${first ? `<span class="dm">${MON[d.getUTCMonth()].toUpperCase()}</span>` : '<span class="dm" aria-hidden="true">&nbsp;</span>'}<span class="dw">${i === 0 ? 'Today' : DOW[d.getUTCDay()]}</span><span class="dn">${d.getUTCDate()}</span><span class="dc">${n ? n + (n === 1 ? ' show' : ' shows') : '–'}</span></button></li>`);
   }
@@ -522,7 +533,7 @@ function heroSection(h) {
 ${guillocheSVG()}
 <div class="hero-coin-wrap">${coinSVG()}</div>
 <div class="hero-text">
-<p class="eyebrow">Updated daily · ${upcoming.length} shows<span class="eb-long"> in ${Object.keys(counts).length} states</span></p>
+<p class="eyebrow">Updated daily · ${SITEDATA.live.length} shows<span class="eb-long"> in ${Object.keys(counts).length} states</span></p>
 <h1 id="h-hero" class="hero-h1">Find a coin show near you</h1>
 <span class="hero-rule" aria-hidden="true"></span>
 <p class="hero-tag">${esc(config.tagline || '')}</p>
@@ -605,7 +616,22 @@ function listBox(h) {
 /* ---------- layout ---------- */
 let SITEDATA; // filled in main()
 
-function page({ p, title, desc, active, body, jsonld, noindex, near, image }) {
+/* Titles and descriptions sized for Google: titles up to about 62 characters, descriptions up to 155. */
+const clip = (t, max) => t.length <= max ? t : t.slice(0, max - 1).replace(/[\s,;:·|–-]+\S*$/, '') + '…';
+function showTitle(s, f) {
+  const rest = ` · ${s.city}, ${s.st} · ${f.date}`;
+  return clip(s.name, Math.max(20, 62 - rest.length)) + rest;
+}
+// "Details checked Oct 20, 2026": shown only when the check is recent, so an old date never makes a listing look stale
+function checkedLine(s) {
+  if (!s.checked || s.checked > todayISO || (D(todayISO) - D(s.checked)) / 864e5 > 180) return '';
+  const d = D(s.checked);
+  return `<p class="show-checked"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>Details checked ${MON[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}</p>`;
+}
+function page({ p, title, desc, active, body, jsonld, noindex, near, image, sitemap }) {
+  if (title.length > 65 && title.endsWith(' | ' + NAME)) title = title.slice(0, -(' | ' + NAME).length);
+  desc = clip(desc, 155);
+  image = image || `${SITE}/assets/share.png`;
   const depth = p ? p.split('/').filter(Boolean).length : 0;
   const h = linker(depth);
   const { counts, upcoming, weekendCount, majorCount } = SITEDATA;
@@ -619,6 +645,7 @@ function page({ p, title, desc, active, body, jsonld, noindex, near, image }) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${p === '404/' ? `<script>(function(){var g=/github\\.io$/.test(location.hostname),r=g?'/'+location.pathname.split('/')[1]+'/':'/';document.write('<base href="'+r+'404/">')})()</script>` : ''}
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
 ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${esc(canonical)}">`}
@@ -627,15 +654,18 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(canonical)}">
-${image ? `<meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image">` : ''}
+<meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#14231D">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%23B8933F'/%3E%3Ccircle cx='20' cy='20' r='15.5' fill='%23D9B867'/%3E%3Ctext x='20' y='26' text-anchor='middle' font-family='Georgia' font-size='16' font-weight='700' fill='%236E520F'%3ECC%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="48x48" href="${h('assets/icon-48.png')}">
+<link rel="apple-touch-icon" href="${h('assets/icon-180.png')}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <link rel="stylesheet" href="${h('assets/style.css')}?v=${ASSET_V}">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 ${ga}
+${config.goatcounter ? `<script data-goatcounter="https://${esc(config.goatcounter)}.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>` : ''}
 </head>
 <body data-root="${depth ? '../'.repeat(depth) : './'}" data-preview="${PREVIEW ? '1' : '0'}">
 <a class="skip" href="#content">Skip to main content</a>
@@ -675,7 +705,7 @@ ${body(h)}
   const file = path.join(OUT, p, 'index.html');
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, html);
-  if (!noindex) SITEDATA.pages.push(p);
+  if (!noindex && sitemap !== false) SITEDATA.pages.push(p);
 }
 
 /* ---------- calendar helpers ---------- */
@@ -690,7 +720,7 @@ function ics(s) {
   const host = SITE.replace(/^https?:\/\//, '') || 'thecoincalendar.com';
   return ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${NAME}//EN`, 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
     `UID:${s.slug}@${host}`, `DTSTAMP:${compact(todayISO)}T000000Z`, `DTSTART;VALUE=DATE:${compact(s.start)}`, `DTEND;VALUE=DATE:${compact(addDays(s.end, 1))}`,
-    `SUMMARY:${e(s.name)}`, `LOCATION:${e(fullAddress(s))}`, `DESCRIPTION:${e([s.hours && 'Hours: ' + s.hours, s.admission && 'Admission: ' + s.admission, 'Confirm dates with the organizer before you travel.'].filter(Boolean).join('\n'))}`,
+    `SUMMARY:${e((s.cancelled ? 'CANCELLED: ' : '') + s.name)}`, ...(s.cancelled ? ['STATUS:CANCELLED'] : []), `LOCATION:${e(fullAddress(s))}`, `DESCRIPTION:${e([s.hours && 'Hours: ' + s.hours, s.admission && 'Admission: ' + s.admission, 'Confirm dates with the organizer before you travel.'].filter(Boolean).join('\n'))}`,
     `URL:${SITE}/${s.path}`, 'END:VEVENT', 'END:VCALENDAR', ''].join('\r\n');
 }
 
@@ -749,7 +779,7 @@ function linkSeries(upcoming) {
   for (const s of upcoming) {
     const same = new Set(groups.get(s.st + '|' + seriesKey(s)));
     if (org(s)) for (const x of upcoming) if (x.st === s.st && org(x) === org(s)) same.add(x);
-    s.nextDates = [...same].filter(x => x !== s && x.start > s.start).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);
+    s.nextDates = [...same].filter(x => x !== s && x.start > s.start && x.end >= todayISO && !x.cancelled).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);
   }
 }
 
@@ -757,7 +787,7 @@ function linkSeries(upcoming) {
 function buildPages(shows) {
   const { counts, upcoming, weekend, fri, sun } = SITEDATA;
   const majors = upcoming.filter(s => s.tier === 'major');
-  linkSeries(upcoming);
+  linkSeries(upcoming.concat(SITEDATA.ended));
   const dealers = collectDealers(upcoming); // before the show pages, so dealer names can link to dealer pages
   applyDealerProfiles(dealers);
   fs.writeFileSync(path.join(OUT, 'assets/dealers.json'), JSON.stringify(dealers.map(e => ({ k: e.key, n: e.name, c: e.city || '', st: e.st || '', w: e.website || '', shows: e.stops.length }))));
@@ -790,7 +820,7 @@ ${sponsorCard(h)}
 ${signupBox()}` });
 
   // Major shows
-  page({ p: 'major-coin-shows/', active: 'major', title: `Major Coin Shows ${years}: FUN, ANA, Baltimore, Long Beach | ${NAME}`,
+  page({ p: 'major-coin-shows/', active: 'major', title: `Major Coin Shows ${years}: FUN, ANA, Long Beach | ${NAME}`,
     desc: `Dates and locations for the major national coin conventions: FUN, ANA World's Fair of Money, National Money Show, Central States, Baltimore, Long Beach and more.`,
     body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › Major shows</p><h1>Major coin shows</h1><p class="lede">The big national conventions, with hundreds of dealers and major auctions. Worth planning a trip around.</p></div>
 ${listSection(majors, h, { title: 'Upcoming national conventions', counts, empty: 'No major shows are listed right now.' })}` });
@@ -806,7 +836,7 @@ ${listBox(h)}` });
   for (const c of Object.keys(STATES)) {
     const list = upcoming.filter(s => s.st === c), n = STATES[c];
     const f = feat.filter(s => s.st === c);
-    page({ p: `state/${stateSlug(c)}/`, active: 'st:' + c, near: true, title: `Coin Shows in ${n} ${years} | ${NAME}`,
+    page({ p: `state/${stateSlug(c)}/`, active: 'st:' + c, near: true, noindex: !list.length, title: `Coin Shows in ${n} ${years} | ${NAME}`,
       desc: list.length ? `${list.length} upcoming coin shows in ${n}: dates, cities and venues for ${years}. Find coin and currency shows near you.` : `Upcoming coin shows in ${n}. Know a show? List it free on ${NAME}.`,
       body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('states/')}">States</a> › ${n}</p><h1>Coin shows in ${n}</h1><p class="lede">${list.length ? `${list.length} upcoming coin, currency and bullion show${list.length === 1 ? '' : 's'} in ${n}, soonest first.` : `No upcoming shows are listed in ${n} yet. If your club runs one, list it free.`}</p></div>
 ${featuredStrip(f, h)}
@@ -820,11 +850,12 @@ ${listBox(h)}` });
   // Show pages
   const splitHours = v => String(v || '').split(/,\s*(?![^()]*\))/).map(x => x.trim()).filter(Boolean);
   const photoSrc = (p, h) => /^https?:\/\//i.test(p) ? p : h('photos/' + p.replace(/^\/+/, ''));
-  for (const s of upcoming) {
+  for (const s of upcoming.concat(SITEDATA.ended)) {
     const f = fmt(s), n = STATES[s.st];
-    const more = upcoming.filter(x => x.st === s.st && x !== s).slice(0, 6);
+    const ended = s.end < todayISO, off = ended || s.cancelled, next = (s.nextDates || [])[0];
+    const more = upcoming.filter(x => x.st === s.st && x !== s && !x.cancelled).slice(0, 6);
     const ld = { '@context': 'https://schema.org', '@type': 'Event', name: s.name, startDate: s.start, endDate: s.end,
-      eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      eventStatus: s.cancelled ? 'https://schema.org/EventCancelled' : 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
       location: { '@type': 'Place', name: s.venue || `${s.city}, ${s.st}`, address: { '@type': 'PostalAddress', streetAddress: s.address || undefined, addressLocality: s.city, addressRegion: s.st, postalCode: s.zip || undefined, addressCountry: 'US' } },
       description: s.description || s.notes || `${TIER_LABEL[s.tier]} coin show in ${s.city}, ${n}.`, url: `${SITE}/${s.path}` };
     if (s.organizer) ld.organizer = { '@type': 'Organization', name: s.organizer, url: s.website || undefined };
@@ -839,7 +870,7 @@ ${listBox(h)}` });
       s.parking && (/^free/i.test(s.parking) ? 'Free parking' : 'Parking: ' + esc(s.parking)),
       s.appraisals && 'Free appraisals',
       s.auction && 'Auction on site',
-      `<span data-countdown="${s.start}">${when}</span>`
+      off ? '' : `<span data-countdown="${s.start}">${when}</span>`
     ].filter(Boolean);
     const extras = [
       s.auction && ['Auction', yes(s.auction) ? '' : esc(s.auction)],
@@ -857,12 +888,14 @@ ${listBox(h)}` });
     const pageUrl = `${SITE}/${s.path}`;
     const shareText = `${s.name}, ${f.date}, ${s.city}, ${s.st}: ${pageUrl}`;
     const fixMail = `mailto:${config.contactEmail}?subject=${encodeURIComponent('Correction: ' + s.name + ' (' + f.date + ')')}&body=${encodeURIComponent('What should we fix?\n\n' + pageUrl)}`;
-    page({ p: s.path, active: 'st:' + s.st, title: `${s.name}, ${f.date} | ${s.city}, ${s.st} Coin Show`,
+    page({ p: s.path, active: 'st:' + s.st, sitemap: !off, title: showTitle(s, f),
       desc: `${s.name}: ${f.date} in ${s.city}, ${n}${s.venue ? ' at ' + s.venue : ''}. Hours, admission, parking, dealers, directions and add-to-calendar.`,
       jsonld: ld,
       image: s.photos.length ? (/^https?:/i.test(s.photos[0]) ? s.photos[0] : `${SITE}/photos/${s.photos[0]}`) : '',
-      body: h => `<article class="show">
+      body: h => `<article class="show${off ? ' is-off' : ''}">
 <p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('state/' + stateSlug(s.st) + '/')}">${n}</a> › ${esc(s.name)}</p>
+${s.cancelled ? `<div class="notice notice-cancel" role="alert"><p><strong>This show is cancelled.</strong> The ${esc(f.date)} show will not take place.${next ? '' : ' Check with the organizer for a new date.'}</p>${next ? `<a class="btn btn-primary btn-sm" href="${h(next.path)}">Next date: ${esc(fmt(next).date)}</a>` : `<a class="btn btn-ghost btn-sm" href="${h('state/' + stateSlug(s.st) + '/')}">Other shows in ${n}</a>`}</div>` : ''}
+${ended ? `<div class="notice notice-ended"><p><strong>This show has ended.</strong> It took place ${esc(f.long)}.</p>${next ? `<a class="btn btn-primary btn-sm" href="${h(next.path)}">See the next date: ${esc(fmt(next).date)}</a>` : `<a class="btn btn-ghost btn-sm" href="${h('state/' + stateSlug(s.st) + '/')}">Upcoming shows in ${n}</a>`}</div>` : ''}
 <div class="show-head">
 <figure class="show-cover"><img src="${esc(coverSrc(s, h))}" alt="${s.photos.length ? esc(s.name) + ' photo' : ''}" width="640" height="360">${s.photos.length && s.photoCredit ? `<figcaption>Photo: ${esc(s.photoCredit)}</figcaption>` : ''}</figure>
 <div class="show-text">
@@ -870,10 +903,11 @@ ${listBox(h)}` });
 <h1>${esc(s.name)}</h1>
 <p class="show-date">${esc(f.long)}</p>
 <p class="show-where">${esc(s.venue ? s.venue + ' · ' : '')}${esc(s.city)}, ${n}</p>
+${checkedLine(s)}
 <div class="actions">
-<a class="btn btn-light" href="${esc(googleCal(s))}" target="_blank" rel="noopener">Add to Google Calendar</a>
+${off ? '' : `<a class="btn btn-light" href="${esc(googleCal(s))}" target="_blank" rel="noopener">Add to Google Calendar</a>
 <a class="btn btn-outline-light" href="event.ics" download="${esc(s.slug)}.ics">Apple or Outlook calendar</a>
-<a class="btn btn-outline-light" href="${esc(dir)}" target="_blank" rel="noopener">Get directions</a>
+<a class="btn btn-outline-light" href="${esc(dir)}" target="_blank" rel="noopener">Get directions</a>`}
 ${s.website ? `<a class="btn btn-outline-light" href="${esc(s.website)}" target="_blank" rel="noopener">Official website</a>` : ''}
 </div>
 </div>
@@ -1083,6 +1117,7 @@ ${dealers.some(e => e.specs.length) ? `<div class="fchips dealer-spec-chips" rol
 <ul><li><strong>ZIP code searches</strong> stay in your own browser. "Near me" runs on your device; your ZIP or location is not sent to us. Your last ZIP may be remembered in your browser for next time.</li>
 <li><strong>Show submissions</strong> you send (show details, your name and email) are used only to check and publish your listing.</li>
 <li><strong>Email sign-ups</strong>, if you join our list, are stored by our email provider. Every email has an unsubscribe link.</li>
+${config.goatcounter ? '<li><strong>Visitor counts.</strong> We count visits and button taps with GoatCounter. It uses no cookies and stores nothing that identifies you.</li>' : ''}
 ${config.googleAnalyticsId ? '<li><strong>Visitor statistics.</strong> We use Google Analytics to count visits and see which pages help people. It uses cookies. You can block them in your browser.</li>' : ''}</ul>
 <h2>Links to other sites</h2><p>Show pages link to organizers, maps and calendars. Those sites have their own privacy policies.</p>
 <h2>Contact</h2><p>Questions or a request to delete your information: <strong class="sel">${esc(config.contactEmail)}</strong>.</p>
@@ -1166,17 +1201,20 @@ async function main() {
   const shows = cleanShows(parseCSV(csv));
   await loadDealers(shows);
   const upcoming = shows.filter(s => s.end >= todayISO);
+  // shows that ended in the last 12 months keep their page, so shared links and Google results still work
+  const ended = shows.filter(s => s.end < todayISO && s.end >= addDays(todayISO, -365) && !s.cancelled);
+  const live = upcoming.filter(s => !s.cancelled);
   if (!upcoming.length) throw new Error('No approved upcoming shows were found. Check the "status" column says approved.');
 
   const dow = D(todayISO).getUTCDay();
   const fri = addDays(todayISO, dow === 0 ? -2 : dow === 6 ? -1 : 5 - dow), sun = addDays(fri, 2);
   const weekend = upcoming.filter(s => s.start <= sun && s.end >= fri);
-  const counts = {}; upcoming.forEach(s => counts[s.st] = (counts[s.st] || 0) + 1);
-  SITEDATA = { counts, upcoming, weekend, fri, sun, weekendCount: weekend.length, majorCount: upcoming.filter(s => s.tier === 'major').length, pages: [] };
+  const counts = {}; live.forEach(s => counts[s.st] = (counts[s.st] || 0) + 1);
+  SITEDATA = { counts, upcoming, ended, live, weekend, fri, sun, weekendCount: weekend.length, majorCount: upcoming.filter(s => s.tier === 'major').length, pages: [] };
 
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
-  for (const f of ['style.css', 'app.js']) fs.copyFileSync(path.join(ROOT, 'assets', f), path.join(OUT, 'assets', f));
+  for (const f of ['style.css', 'app.js', 'share.png', 'icon-48.png', 'icon-180.png']) if (fs.existsSync(path.join(ROOT, 'assets', f))) fs.copyFileSync(path.join(ROOT, 'assets', f), path.join(OUT, 'assets', f));
   fs.copyFileSync(path.join(ROOT, 'data/zip3.json'), path.join(OUT, 'assets/zip3.json'));
   if (fs.existsSync(path.join(ROOT, 'photos'))) fs.cpSync(path.join(ROOT, 'photos'), path.join(OUT, 'photos'), { recursive: true });
   // dealer applications you upload yourself (PDFs), referenced by file name in the dealer_application column
@@ -1185,7 +1223,7 @@ async function main() {
   if (fs.existsSync(path.join(ROOT, 'dealer-lists'))) fs.cpSync(path.join(ROOT, 'dealer-lists'), path.join(OUT, 'dealer-lists'), { recursive: true });
   // dealer logos from approved profiles
   if (fs.existsSync(path.join(ROOT, 'dealer-logos'))) fs.cpSync(path.join(ROOT, 'dealer-logos'), path.join(OUT, 'dealer-logos'), { recursive: true });
-  fs.writeFileSync(path.join(OUT, 'assets/shows.json'), JSON.stringify(upcoming.map(s => ({ n: s.name, c: s.city, st: s.st, v: s.venue, s: s.start, e: s.end, la: s.la, lo: s.lo, p: s.path }))));
+  fs.writeFileSync(path.join(OUT, 'assets/shows.json'), JSON.stringify(live.map(s => ({ n: s.name, c: s.city, st: s.st, v: s.venue, s: s.start, e: s.end, la: s.la, lo: s.lo, p: s.path }))));
 
   buildPages(shows);
   fs.renameSync(path.join(OUT, '404/index.html'), path.join(OUT, '404.html'));
@@ -1196,7 +1234,7 @@ async function main() {
   if (config.customDomain) fs.writeFileSync(path.join(OUT, 'CNAME'), config.customDomain.trim() + '\n');
   fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 
-  console.log(`Done. ${upcoming.length} upcoming shows, ${SITEDATA.pages.length} pages written to dist/.`);
+  console.log(`Done. ${live.length} upcoming shows${upcoming.length > live.length ? ` (+${upcoming.length - live.length} cancelled)` : ''}, ${ended.length} ended show pages kept, ${SITEDATA.pages.length} pages written to dist/.`);
   if (warnings.length) { console.log(`\n${warnings.length} thing(s) to check in the spreadsheet:`); warnings.forEach(w => console.log(' - ' + w)); }
 }
 
