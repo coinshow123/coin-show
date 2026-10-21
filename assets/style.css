@@ -9,7 +9,8 @@
   --brass:#B8933F; --brass-dark:#7A5C1C; --brass-tint:#FBF3E0; --cream:#E8D9A8;
   --ok:#1C5B45; --err:#A3361B;
   --serif:"Literata", Georgia, "Times New Roman", serif;
-  --sans:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Source Sans 3: clear, compact, and a plain zero (no slash) */
+  --sans:"Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light;
 }
 *{box-sizing:border-box}
@@ -669,3 +670,4 @@ tr.is-major .dtile .tm{color:var(--brass-dark)}
   .shows .c-name a::after{content:'';position:absolute;inset:0;border-radius:10px}
   .shows tr:active{background:var(--wine-tint)!important}
 }
+.notice-confirm{border-color:#D88A4E;background:#FDF0E6}
