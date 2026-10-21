@@ -586,7 +586,7 @@ function coverSVG(s) {
 }
 const coverSrc = (s, h) => s.photos.length ? (/^https?:\/\//i.test(s.photos[0]) ? s.photos[0] : h('photos/' + s.photos[0].replace(/^\/+/, ''))) : h('covers/' + s.slug + '.svg');
 
-function majorSlider(majors, h) {
+function majorSlider(majors, h, o = {}) {
   if (!majors.length) return '';
   const cards = majors.map(s => {
     const days = Math.round((D(s.start) - D(todayISO)) / 864e5);
@@ -595,7 +595,7 @@ function majorSlider(majors, h) {
   }).join('\n');
   return `<section id="major" class="block" aria-labelledby="h-major">
 <div class="block-head">
-<div><h2 id="h-major">Major shows</h2><p class="muted">The national conventions worth planning a trip around. Swipe or use the arrows.</p></div>
+<div><h2 id="h-major">${esc(o.title || 'Major shows')}</h2><p class="muted">${esc(o.sub || 'The national conventions worth planning a trip around. Swipe or use the arrows.')}</p></div>
 <div class="arrows"><button type="button" class="arrow" data-slide="-1" aria-controls="major-track" aria-label="Previous major shows"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4 6.5 10l6 6"/></svg></button><button type="button" class="arrow arrow-next" data-slide="1" aria-controls="major-track" aria-label="Next major shows"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7.5 4 6 6-6 6"/></svg></button></div>
 </div>
 <ul class="mtrack" id="major-track">
@@ -840,6 +840,7 @@ ${listBox(h)}` });
       desc: list.length ? `${list.length} upcoming coin shows in ${n}: dates, cities and venues for ${years}. Find coin and currency shows near you.` : `Upcoming coin shows in ${n}. Know a show? List it free on ${NAME}.`,
       body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('states/')}">States</a> › ${n}</p><h1>Coin shows in ${n}</h1><p class="lede">${list.length ? `${list.length} upcoming coin, currency and bullion show${list.length === 1 ? '' : 's'} in ${n}, soonest first.` : `No upcoming shows are listed in ${n} yet. If your club runs one, list it free.`}</p></div>
 ${featuredStrip(f, h)}
+${majorSlider(list.filter(x => (x.tier === 'major' || x.tier === 'regional') && !x.cancelled && x.start <= addDays(todayISO, 365)).filter((x, i, a) => a.findIndex(y => seriesKey(y) === seriesKey(x)) === i).slice(0, 6), h, { title: `Biggest shows in ${n}`, sub: `National and state-wide shows worth the drive, next 12 months. Swipe or use the arrows.` })}
 ${listSection(list, h, { title: `Upcoming shows in ${n}`, counts, curState: c, empty: `No upcoming shows in ${n} yet. Enter your ZIP code below; a show just over the state line may be closer than you think.` })}
 ${nearSection()}
 ${sponsorCard(h)}
