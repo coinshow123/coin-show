@@ -148,6 +148,32 @@ function tierOf(v) {
 const streetOnly = s => String(s.address || '').replace(new RegExp(',?\\s*' + String(s.city || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ',?\\s*(' + s.st + ')?\\s*\\d{0,5}\\s*$', 'i'), '').trim();
 // Sheets drops the leading zero of ZIPs like 08512 (NJ, New England). Put it back.
 const fixZip = z => { z = String(z || '').trim(); return /^\d{3,4}$/.test(z) ? z.padStart(5, '0') : z; };
+/* Show every time the same way: "9:00 AM - 2:00 PM". Times without AM/PM get the usual show-day guess:
+   7 to 11 is morning, 12 and 1 to 6 are afternoon. Text we can't read is left exactly as typed. */
+function formatHours(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  const T = '(\\d{1,2})(?::(\\d{2}))?\\s*(a\\.?m\\.?|p\\.?m\\.?|noon)?';
+  const mer = (h, m) => m ? (/^p|noon/i.test(m) ? 'PM' : 'AM') : '';
+  const guess = h => (h >= 7 && h <= 11) ? 'AM' : 'PM';
+  const out = (h, mm, ap) => { h = +h; if (h > 12 || h === 0) return null; return `${h}:${mm || '00'} ${ap}`; };
+  let ok = true;
+  // ranges first: "9am-3pm", "10–6:30", "10am to 4pm", "12-5:30pm"
+  let s = v.replace(new RegExp(T + '\\s*(?:-|–|—|to)\\s*' + T, 'gi'), (all, h1, m1, a1, h2, m2, a2) => {
+    let ap2 = mer(+h2, a2) || guess(+h2);
+    let ap1 = mer(+h1, a1);
+    if (!ap1) ap1 = +h1 === 12 ? 'PM' : (+h1 >= 7 && +h1 <= 11) ? 'AM' : (ap2 === 'PM' && +h1 < +h2 ? 'PM' : 'AM');
+    const a = out(h1, m1, ap1), b = out(h2, m2, ap2);
+    if (!a || !b) { ok = false; return all; }
+    return a + ' - ' + b;
+  });
+  // single times that say am/pm: "from 9am", "early bird 10am"
+  s = s.replace(new RegExp('(^|[^\\d:])' + '(\\d{1,2})(?::(\\d{2}))?\\s*(a\\.?m\\.?|p\\.?m\\.?)(?![a-z])', 'gi'), (all, pre, h, m, a) => {
+    const t = out(h, m, mer(+h, a)); return t ? pre + t : all;
+  });
+  s = s.replace(/^from /i, 'From ').replace(/\s*,\s*/g, ', ').replace(/(\S)\(/g, '$1 (');
+  return ok ? s : v;
+}
 const splitList = v => String(v || '').split(/[,;]/).map(x => x.trim()).filter(Boolean);
 const yes = v => /^(y|yes|true|x|1)$/i.test(String(v || '').trim());
 
@@ -196,7 +222,7 @@ function cleanShows(rows) {
     const website = /^https?:\/\//i.test(r.website) ? r.website : (r.website ? 'https://' + r.website : '');
     out.push({
       start, end, name: r.show_name, city: r.city, st, venue: r.venue, address: streetOnly({ address: r.address, city: r.city, st }), zip: fixZip(r.zip),
-      tier: tierOf(r.tier), hours: r.hours, admission: r.admission, website, organizer: r.organizer,
+      tier: tierOf(r.tier), hours: formatHours(r.hours), admission: r.admission, website, organizer: r.organizer,
       notes: r.notes, confirm: yes(r.confirm_dates), featured: yes(r.featured),
       id: (r.show_id || '').trim().toUpperCase(), tables: r.dealer_tables, parking: r.parking,
       specialties: splitList(r.specialties), auction: r.auction, grading: r.grading,
@@ -635,7 +661,11 @@ ${body(h)}
 <footer class="foot">
 <div class="wrap foot-in">
 <div><p class="foot-name">${brandHTML()}</p><p class="foot-tag">${esc(config.tagline || '')}</p><p>Show dates can change. Always confirm with the organizer before you travel.</p></div>
-<nav aria-label="Footer"><a href="${h('') + '#all'}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a><a href="${h('dealers/')}">Dealers</a><a href="${h('submit/')}">List your show</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('about/')}">About</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></nav>
+<nav class="foot-nav" aria-label="Footer">
+<div><p class="foot-h">Find shows</p><a href="${h('') + '#all'}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a></div>
+<div><p class="foot-h">Dealers &amp; selling</p><a href="${h('dealers/')}">Dealers</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('submit/')}">List your show</a></div>
+<div><p class="foot-h">${esc(NAME)}</p><a href="${h('about/')}">About</a><a href="mailto:${esc(config.contactEmail)}">Contact us</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></div>
+</nav>
 </div>
 <p class="wrap copy">© ${D(todayISO).getUTCFullYear()} ${esc(NAME)}. Listings updated ${buildDateLong}.</p>
 </footer>
