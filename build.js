@@ -17,7 +17,7 @@ const path = require('path');
 // so visitors' browsers always load the new files together with the new pages.
 // changes on every publish, so browsers fetch the new show list instead of an old saved copy
 const DATA_V = Date.now().toString(36);
-const ASSET_V = require('crypto').createHash('md5').update(['style.css', 'app.js'].map(f => require('fs').readFileSync(require('path').join(__dirname, 'assets', f), 'utf8')).join('')).digest('hex').slice(0, 8);
+const ASSET_V = require('crypto').createHash('md5').update(['style.css', 'app.js', 'logo.svg', 'favicon.svg'].filter(f => require('fs').existsSync(require('path').join(__dirname, 'assets', f))).map(f => require('fs').readFileSync(require('path').join(__dirname, 'assets', f), 'utf8')).join('')).digest('hex').slice(0, 8);
 
 const ROOT = __dirname;
 const OUT = path.join(ROOT, 'dist');
@@ -484,7 +484,8 @@ function signupBox() {
 }
 
 /* ---------- home banner: engraved banknote pattern, gold coin, tagline, ZIP finder ---------- */
-const LOGO = '<svg class="logo-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#B8933F"/><circle cx="20" cy="20" r="15.5" fill="#D9B867"/><circle cx="20" cy="20" r="13.5" fill="none" stroke="#A07E33" stroke-width="1" stroke-dasharray="1.4 1.4"/><text x="20" y="25.5" text-anchor="middle" font-family="Georgia,serif" font-size="14.5" font-weight="700" fill="#6E520F">CC</text></svg>';
+/* The coin logo: assets/logo.svg (swap that one file to change the logo everywhere) */
+const LOGO = h => `<img class="logo-mark" src="${h('assets/favicon.svg')}?v=${ASSET_V}" alt="" width="36" height="36">`;
 function guillocheSVG() {
   const ring = (cx, cy, R, amp, n, lobes, sx, sy, cls, op) => {
     let out = '';
@@ -507,26 +508,8 @@ ${ring(980, 210, 66, 6, 5, 7, 1.25, 1, 'gu-spin', .24)}
 <g fill="none" stroke="var(--brass)" stroke-width="1">${ring(140, 380, 170, 12, 6, 13, 1.4, 1, 'gu-spin-rev', .28)}</g>
 </svg>`;
 }
-function coinSVG() {
-  let reed = '';
-  for (let i = 0; i < 120; i++) {
-    const a = i / 120 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
-    reed += `M${(100 + c * 91).toFixed(1)} ${(100 + s * 91).toFixed(1)}L${(100 + c * 99).toFixed(1)} ${(100 + s * 99).toFixed(1)}`;
-  }
-  let stars = '';
-  for (let j = 0; j < 13; j++) { const a = Math.PI * (0.18 + j * 0.0533); stars += `<circle cx="${(100 + Math.cos(a) * 70).toFixed(1)}" cy="${(100 + Math.sin(a) * 70).toFixed(1)}" r="2.3"/>`; }
-  return `<svg class="hero-coin" viewBox="0 0 220 220" role="img" aria-label="Coin Calendar coin">
-<defs><clipPath id="coin-clip"><circle cx="100" cy="100" r="99"/></clipPath><path id="coin-arc" d="M38 104 A62 62 0 0 1 162 104"/></defs>
-<circle cx="110" cy="112" r="99" fill="var(--ink)" opacity=".18"/>
-<circle cx="100" cy="100" r="99" fill="#B8933F"/>
-<path d="${reed}" stroke="#7A5C1C" stroke-width="2.2"/>
-<circle cx="100" cy="100" r="87" fill="#D9B867"/>
-<circle cx="100" cy="100" r="84" fill="none" stroke="#A07E33" stroke-width="2.4"/>
-<g fill="#8A6A24">${stars}</g>
-<text font-family="Georgia,serif" font-size="12" font-weight="700" fill="#6E520F" letter-spacing="1.6"><textPath href="#coin-arc" startOffset="50%" text-anchor="middle">${esc(NAME.toUpperCase())}</textPath></text>
-<text x="100" y="118" text-anchor="middle" font-family="Georgia,serif" font-size="50" font-weight="700" fill="#6E520F">CC</text>
-<g clip-path="url(#coin-clip)"><rect class="coin-shine" x="-60" y="-20" width="34" height="240" fill="#fff" opacity=".38"/></g>
-</svg>`;
+function coinSVG(h) {
+  return `<img class="hero-coin" src="${h('assets/logo.svg')}?v=${ASSET_V}" alt="The Coin Calendar coin" width="200" height="200">`;
 }
 /* Brand name with the key word in bold: "The <b>Coin</b> Calendar" */
 function brandHTML() {
@@ -537,7 +520,7 @@ function heroSection(h) {
   const { counts, upcoming } = SITEDATA;
   return `<section class="hero" aria-labelledby="h-hero">
 ${guillocheSVG()}
-<div class="hero-coin-wrap">${coinSVG()}</div>
+<div class="hero-coin-wrap">${coinSVG(h)}</div>
 <div class="hero-text">
 <p class="eyebrow">Updated daily · ${SITEDATA.live.length} shows<span class="eb-long"> in ${Object.keys(counts).length} states</span></p>
 <h1 id="h-hero" class="hero-h1">Find a coin show near you</h1>
@@ -663,6 +646,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#14231D">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%23B8933F'/%3E%3Ccircle cx='20' cy='20' r='15.5' fill='%23D9B867'/%3E%3Ctext x='20' y='26' text-anchor='middle' font-family='Georgia' font-size='16' font-weight='700' fill='%236E520F'%3ECC%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="${h('assets/favicon.svg')}?v=${ASSET_V}">
 <link rel="icon" type="image/png" sizes="48x48" href="${h('assets/icon-48.png')}">
 <link rel="apple-touch-icon" href="${h('assets/icon-180.png')}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -678,7 +662,7 @@ ${config.goatcounter ? `<script data-goatcounter="https://${esc(config.goatcount
 <a class="skip" href="#content">Skip to main content</a>
 <header class="top" data-open="false">
 <div class="wrap top-in">
-<a class="logo" href="${h('')}" aria-label="${esc(NAME)} home">${LOGO}<span>${brandHTML()}</span></a>
+<a class="logo" href="${h('')}" aria-label="${esc(NAME)} home">${LOGO(h)}<span>${brandHTML()}</span></a>
 <button type="button" class="nav-btn" aria-expanded="false" aria-controls="site-nav"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 6h16M3 11h16M3 16h16"/></svg><span>Menu</span></button>
 <nav class="nav" id="site-nav" aria-label="Main">
 ${nav('all', h('') + '#all', 'All shows')}
@@ -1222,7 +1206,7 @@ async function main() {
 
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
-  for (const f of ['style.css', 'app.js', 'share.png', 'icon-48.png', 'icon-180.png']) if (fs.existsSync(path.join(ROOT, 'assets', f))) fs.copyFileSync(path.join(ROOT, 'assets', f), path.join(OUT, 'assets', f));
+  for (const f of ['style.css', 'app.js', 'share.png', 'icon-48.png', 'icon-180.png', 'logo.svg', 'favicon.svg']) if (fs.existsSync(path.join(ROOT, 'assets', f))) fs.copyFileSync(path.join(ROOT, 'assets', f), path.join(OUT, 'assets', f));
   fs.copyFileSync(path.join(ROOT, 'data/zip3.json'), path.join(OUT, 'assets/zip3.json'));
   if (fs.existsSync(path.join(ROOT, 'photos'))) fs.cpSync(path.join(ROOT, 'photos'), path.join(OUT, 'photos'), { recursive: true });
   // dealer applications you upload yourself (PDFs), referenced by file name in the dealer_application column
