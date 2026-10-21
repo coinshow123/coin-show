@@ -11,5 +11,11 @@
   "featuredPrice": "",
   "googleAnalyticsId": "",
   "timeZone": "America/Los_Angeles",
-  "goatcounter": "endless123"
+  "goatcounter": "endless123",
+  "differentDealers": [
+    [
+      "Money Metals",
+      "Mooney Metals"
+    ]
+  ]
 }
