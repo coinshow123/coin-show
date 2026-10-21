@@ -1,5 +1,24 @@
 /* The Coin Calendar page behavior: main menu, major-show slider, date strip,
    20-per-page lists with filter chips, and "near me" (runs in the browser; the ZIP never leaves the device). */
+/* Tap counting with GoatCounter (only when the site owner has turned it on): directions, calendar,
+   official website, share buttons and ZIP searches. No cookies; nothing that identifies the visitor. */
+function countTap(name) {
+  try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: name, title: location.pathname, event: true }); } catch (e) {}
+}
+document.addEventListener('click', function (e) {
+  var a = e.target.closest ? e.target.closest('a,button') : null;
+  if (!a) return;
+  var href = a.getAttribute('href') || '', n = '';
+  if (/google\.com\/maps/.test(href)) n = 'directions';
+  else if (/calendar\.google\.com/.test(href) || a.hasAttribute('data-ics-google')) n = 'calendar-google';
+  else if (/\.ics$/.test(href) || a.hasAttribute('data-ics-sub')) n = 'calendar-apple';
+  else if (/facebook\.com\/sharer/.test(href)) n = 'share-facebook';
+  else if (/^sms:/.test(href)) n = 'share-text';
+  else if (/^mailto:\?/.test(href)) n = 'share-email';
+  else if (a.hasAttribute('data-copy')) n = 'share-copy';
+  else if (/^Official website$/.test((a.textContent || '').trim())) n = 'official-website';
+  if (n) countTap(n);
+}, true);
 /* publish version, so a new show list is always downloaded fresh */
 var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
 (function () {
@@ -311,7 +330,7 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
     errEl.hidden = true;
     var z = zipIn.value.trim();
     if (!/^\d{5}$/.test(z)) { fail('Enter a 5-digit ZIP code.'); zipIn.focus(); return; }
-    mode = 'near';
+    mode = 'near'; countTap('zip-search');
     fromZip(z, true).catch(function () { fail('Shows could not load. Check your connection and try again.'); });
   });
   if (radIn) radIn.addEventListener('change', function () { store('bb-radius', radIn.value); if (here && mode === 'near') runNear(false); });
@@ -335,7 +354,7 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
         gps.innerHTML = gpsLabel;
         load().then(function () {
           here = { lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'you' };
-          mode = 'near'; runNear(true);
+          mode = 'near'; countTap('location-search'); runNear(true);
         }).catch(function () { fail('Shows could not load. Check your connection and try again.'); });
       }, function () {
         gps.innerHTML = gpsLabel;
