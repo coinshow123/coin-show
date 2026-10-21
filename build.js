@@ -699,10 +699,35 @@ const appHref = (s, h) => /^https?:\/\//i.test(s.dealerApp) ? s.dealerApp : h('a
 const appLabel = s => /\.pdf($|\?)/i.test(s.dealerApp) ? 'Download dealer application (PDF)' : 'Download dealer application';
 const showsContact = s => s.publicContact && (s.contactName || s.contactPhone || s.contactEmail);
 
+/* "Next dates": other upcoming dates of the same show (Summer FUN after FUN, next month's club show).
+   Same state, and either the same organizer or the same name once words like "annual", "fall", "72nd" are taken out. */
+const SERIES_SKIP = new Set(['the', 'annual', 'coin', 'coins', 'show', 'shows', 'convention', 'expo', 'and', 'currency', 'collectibles', 'collectible',
+  'fall', 'spring', 'summer', 'winter', 'christmas', 'holiday', 'monthly', 'weekly', 'national', 'international', 'numismatic', 'club']);
+const STATE_WORDS = new Set(Object.values(STATES).map(n => n.toLowerCase()));
+// a name that is only a state ("Texas Coin Show") is too general: also needs the same city
+const seriesKey = s => { const k = seriesKey0(s); return !k || STATE_WORDS.has(k) ? k + '~' + String(s.city).toLowerCase() : k; };
+const seriesKey0 = s => String(s.name || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/&/g, ' ').replace(/\b\d+(st|nd|rd|th)?\b/g, ' ')
+  .split(/[^a-z]+/).filter(w => w && !SERIES_SKIP.has(w)).join(' ');
+function linkSeries(upcoming) {
+  const groups = new Map();
+  for (const s of upcoming) {
+    const k = s.st + '|' + seriesKey(s);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(s);
+  }
+  const org = s => String(s.organizer || '').trim().toLowerCase();
+  for (const s of upcoming) {
+    const same = new Set(groups.get(s.st + '|' + seriesKey(s)));
+    if (org(s)) for (const x of upcoming) if (x.st === s.st && org(x) === org(s)) same.add(x);
+    s.nextDates = [...same].filter(x => x !== s && x.start > s.start).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);
+  }
+}
+
 /* ---------- pages ---------- */
 function buildPages(shows) {
   const { counts, upcoming, weekend, fri, sun } = SITEDATA;
   const majors = upcoming.filter(s => s.tier === 'major');
+  linkSeries(upcoming);
   const dealers = collectDealers(upcoming); // before the show pages, so dealer names can link to dealer pages
   applyDealerProfiles(dealers);
   fs.writeFileSync(path.join(OUT, 'assets/dealers.json'), JSON.stringify(dealers.map(e => ({ k: e.key, n: e.name, c: e.city || '', st: e.st || '', w: e.website || '', shows: e.stops.length }))));
@@ -829,18 +854,15 @@ ${s.confirm ? '<p class="warn"><strong>Please confirm these dates.</strong> List
 
 <div class="pair">
 <section class="block card" aria-labelledby="h-hours"><h2 id="h-hours">Show hours</h2>
-${hours.length ? `<dl class="hours">${hours.map(x => { const m = x.match(/^([A-Za-z]{3,9}\.?(?:\s*[–-]\s*[A-Za-z]{3,9})?)\s+(.*)$/); return m ? `<div><dt>${esc(m[1])}</dt><dd>${esc(m[2])}</dd></div>` : `<div><dd>${esc(x)}</dd></div>`; }).join('')}</dl>` : `<p class="muted">Hours not posted yet. ${s.website ? 'Check the official website.' : 'Check with the organizer.'}</p>`}
+${hours.length ? `<dl class="hours${hours.length > 3 ? ' hours-2' : ''}">${hours.map(x => { const m = x.match(/^([A-Za-z]{3,9}\.?(?:\s*[–-]\s*[A-Za-z]{3,9})?)\s+(.*)$/); return m ? `<div><dt>${esc(m[1])}</dt><dd>${esc(m[2])}</dd></div>` : `<div><dd>${esc(x)}</dd></div>`; }).join('')}</dl>` : `<p class="muted">Hours not posted yet. ${s.website ? 'Check the official website.' : 'Check with the organizer.'}</p>`}
 <p class="muted small">${esc(f.long)}</p>
+${s.nextDates.length ? `<div class="next-dates"><h3>Next dates</h3><ul>${s.nextDates.map(x => `<li><a href="${h(x.path)}"><span class="nd-date">${esc(fmt(x).date)}</span>${x.name !== s.name ? `<span class="nd-name">${esc(x.name)}</span>` : ''}${x.city !== s.city ? `<span class="nd-city">${esc(x.city)}, ${x.st}</span>` : ''}</a></li>`).join('')}</ul></div>` : ''}
 </section>
 <section class="block card" aria-labelledby="h-find"><h2 id="h-find">What you'll find</h2>
 ${s.specialties.length ? `<ul class="chips">${s.specialties.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="muted">U.S. and world coins, currency and bullion are typical. The organizer has not posted specialties yet.</p>'}
-${s.dealers.length ? `<p class="small"><a href="#dealers">See all ${s.dealers.length} dealers and their table numbers</a></p>` : s.tables ? `<p class="small">${esc(s.tables)}${/table|dealer/i.test(s.tables) ? '' : ' dealer tables'}</p>` : ''}
+${s.dealers.length ? `<p class="find-more"><a class="btn btn-ghost btn-sm" href="#dealers">See all ${s.dealers.length} dealers ↓</a></p>` : s.tables ? `<p class="small">${esc(s.tables)}${/table|dealer/i.test(s.tables) ? '' : ' dealer tables'}</p>` : ''}
 </section>
 </div>
-
-${extras.length ? `<section class="block" aria-labelledby="h-at"><h2 id="h-at">At the show</h2>
-<ul class="checks">${extras.map(([k, v]) => `<li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10.5 4 4 8-9"/></svg><span><strong>${k}</strong>${v ? `<span class="muted"> · ${v}</span>` : ''}</span></li>`).join('')}</ul>
-</section>` : ''}
 
 ${rich && (s.description || s.photos.length > 1) ? `<section class="block" aria-labelledby="h-about"><h2 id="h-about">About this show</h2>
 ${s.photos.length > 1 ? `<div class="photos">${s.photos.slice(1, 7).map((p, i) => `<img src="${esc(photoSrc(p, h))}" alt="${esc(s.name)} photo ${i + 1}" loading="lazy">`).join('')}</div>` : ''}
@@ -876,18 +898,20 @@ ${s.dealerApp ? `<div class="dealer-app"><div><strong>Want a table at this show?
 <p>Fix the date or hours, add your dealer list, upload your dealer application so dealers can download it, and choose whether to show your contact info here.</p></div>
 <div class="promo-btns"><a class="btn btn-gold" href="${esc(updateLink(s))}" target="_blank" rel="noopener">Update this show</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">${s.dealers.length ? 'Replace dealer list' : 'Upload dealer list'}</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">${s.dealerApp ? 'Replace dealer application' : 'Upload dealer application'}</a></div></aside>
 
+<section class="block share" aria-labelledby="h-share"><div class="share-bar">
+<div><h2 id="h-share">Going? Bring a friend.</h2><p class="muted">Send this show to someone who collects.</p></div>
+<div class="share-btns">
+<a class="btn btn-ghost only-phone" href="sms:?&amp;body=${encodeURIComponent(shareText)}">${SHARE_ICON.text}<span>Text</span></a>
+<a class="btn btn-ghost" href="mailto:?subject=${encodeURIComponent(s.name + ' coin show')}&amp;body=${encodeURIComponent('Thought you might like this coin show:\n\n' + shareText)}">${SHARE_ICON.email}<span>Email</span></a>
+<a class="btn btn-ghost" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}" target="_blank" rel="noopener">${SHARE_ICON.fb}<span>Facebook</span></a>
+<button type="button" class="btn btn-ghost" data-copy="${esc(pageUrl)}">${SHARE_ICON.link}<span>Copy link</span></button>
+</div></div>
+</section>
+<p class="small muted report-line">See a wrong date or detail? <a href="${esc(fixMail)}">Report it</a> and we'll fix it quickly.</p>
+
 ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more">More coin shows in ${n}</h2>
 <div class="table-wrap"><table class="shows"><thead><tr><th scope="col" class="c-date">Date</th><th scope="col" class="c-st">State</th><th scope="col">Name of the coin show</th></tr></thead><tbody>${more.map(x => showRow(x, h)).join('')}</tbody></table></div>
 <p><a href="${h('state/' + stateSlug(s.st) + '/')}">See all shows in ${n}</a></p></section>` : ''}
-
-<section class="block share" aria-labelledby="h-share"><h2 id="h-share">Tell a friend about this show</h2>
-<div class="share-row">
-<a class="btn btn-ghost only-phone" href="sms:?&amp;body=${encodeURIComponent(shareText)}">Text a friend</a>
-<a class="btn btn-ghost" href="mailto:?subject=${encodeURIComponent(s.name + ' coin show')}&amp;body=${encodeURIComponent('Thought you might like this coin show:\n\n' + shareText)}">Email a friend</a>
-<button type="button" class="btn btn-ghost" data-copy="${esc(pageUrl)}">Copy link</button>
-</div>
-<p class="small">See a wrong date or detail? <a href="${esc(fixMail)}">Report it</a>, or email <strong class="sel">${esc(config.contactEmail)}</strong>. We fix listings quickly.</p>
-</section>
 
 <p class="muted small">Details come from the organizer and public show calendars. Dates can change, so confirm with the organizer before you travel. Page updated ${buildDateLong}.</p>
 </div>
@@ -1090,6 +1114,13 @@ function dealerClaimLink(e) {
   return `mailto:${config.contactEmail}?subject=${encodeURIComponent('My dealer profile: ' + e.name)}&body=${encodeURIComponent(`Profile: ${SITE}/${e.path}\nDealer ID: ${e.key}\n\nYour name and role:\nSpecialties (Rare Coins, U.S. Paper Money, World Paper Money, Ancient, Bullion):\nMember of (ANA, PNG...):\nWebsite:\nOnline store:\nPhone for customers:\nEmail for customers:\n\nAttach your logo if you have one.`)}`;
 }
 const telHref = p => 'tel:' + String(p).replace(/[^\d+]/g, '');
+/* small line icons for the share buttons (they take the button's text color) */
+const SHARE_ICON = {
+  text: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  email: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="m4 7 8 6 8-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  fb: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M14 8h3V4h-3c-2.8 0-4 1.8-4 4.3V10H7v4h3v7h4v-7h3l1-4h-4V8.6c0-.4.3-.6.6-.6z" fill="currentColor"/></svg>',
+  link: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+};
 /* Green verified tick: a scalloped badge with a white check. Same green as the site's main buttons. */
 const BADGE_PATH = (() => {
   const pts = [], n = 12, cx = 12, cy = 12;
