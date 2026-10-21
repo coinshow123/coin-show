@@ -152,8 +152,8 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
   /* ----- copy link and dealer search (show pages) ----- */
   document.querySelectorAll('[data-copy]').forEach(function (b) {
     b.addEventListener('click', function () {
-      var url = b.getAttribute('data-copy'), old = b.textContent;
-      function done(msg) { b.textContent = msg; setTimeout(function () { b.textContent = old; }, 2500); }
+      var url = b.getAttribute('data-copy'), lab = b.querySelector('span') || b, old = lab.textContent;
+      function done(msg) { lab.textContent = msg; setTimeout(function () { lab.textContent = old; }, 2500); }
       if (navigator.share && /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
         navigator.share({ title: document.title, url: url }).catch(function () {});
         return;
