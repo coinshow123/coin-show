@@ -683,3 +683,35 @@ tr.is-major .dtile .tm{color:var(--brass-dark)}
 .badge-pick label{display:inline-flex;align-items:center;gap:8px;min-height:44px;cursor:pointer}.badge-pick input{width:20px;height:20px;accent-color:var(--wine)}
 .code{font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:12px 14px;white-space:pre-wrap;word-break:break-all;margin:0 0 12px}
 .faq dt{font-weight:700;margin-top:14px}.faq dt:first-child{margin-top:0}.faq dd{margin:4px 0 0}
+
+/* List your show form */
+.sub-form{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 24px 24px}
+.sub-form .sec{border:0;border-top:1px solid var(--line-soft);margin:0;padding:18px 0 6px}
+.sub-form .sec:first-of-type{border-top:0;padding-top:16px}
+.sub-form legend{font-family:var(--serif);font-weight:700;font-size:22px;padding:0;margin:0 0 10px;float:left;width:100%}
+.sub-form legend+*{clear:both}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px;clear:both;align-items:start}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}.fld-wide{grid-column:1/-1}
+.fld label,.choices .q{font-weight:700;font-size:16px;margin:0}
+.fld .opt{font-weight:400;color:var(--muted)}
+.fld .hint{font-size:15px;color:var(--muted);line-height:1.4}
+.sub-form input[type=date],.sub-form input[type=email],.sub-form input[type=tel],.sub-form input[type=url],.sub-form textarea{font:inherit;font-size:18px;color:var(--ink);background:var(--card);border:1.5px solid #98A39C;border-radius:8px;padding:10px 12px;min-height:52px;width:100%;box-sizing:border-box}
+.sub-form textarea{min-height:96px;resize:vertical}
+.sub-form input:focus,.sub-form select:focus,.sub-form textarea:focus{border-color:var(--wine);outline:3px solid var(--brass);outline-offset:1px}
+.choices{display:flex;flex-direction:column;gap:2px;clear:both;margin:4px 0 8px}
+.choices label,.agree{display:flex;align-items:flex-start;gap:12px;min-height:44px;padding:10px 0;font-size:17px;cursor:pointer;line-height:1.35}
+.choices input,.agree input{width:22px;height:22px;flex:0 0 22px;margin:0;accent-color:var(--wine)}
+.choices .q{margin-top:12px}
+.agree{font-weight:700;margin:8px 0 4px}
+.rep-count{max-width:320px;margin:4px 0 10px}.rep-count select{width:auto;min-width:120px}
+.sec-note{margin:0 0 12px;clear:both}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.btn-big{min-height:58px;font-size:20px;width:100%;margin-top:10px}
+.form-err{background:#FBE9E4;border:1.5px solid var(--err);color:var(--err);border-radius:8px;padding:12px 14px;font-weight:600;margin:12px 0 0}
+.is-bad input,.is-bad select,.is-bad textarea{border-color:var(--err)!important}
+.is-bad>label,.agree.is-bad{color:var(--err)}
+.sub-done{border-color:var(--wine);background:var(--wine-tint)}.sub-done:focus{outline:none}
+.how{margin:0;padding-left:22px}.how li{margin:0 0 8px}
+.org-lower{margin-top:36px}
+@media (max-width:640px){.fgrid{grid-template-columns:1fr}.sub-form{padding:4px 16px 18px}}
+.sub-form .sec[hidden]+.sec{border-top:0}

@@ -511,3 +511,107 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
     });
   });
 })();
+
+/* "List your show" form: in the site's design, sends the answers into the Google Form behind it.
+   Links from show pages and organizer emails fill it in (?show_id=...&still_on=yes). */
+(function () {
+  var form = document.getElementById('show-form');
+  if (!form) return;
+  var info = JSON.parse(document.getElementById('form-info').textContent), E = info.entries || {}, C = info.choices || {};
+  var STILL = ['Yes, as listed', 'Yes, but some details changed', 'Postponed', 'Canceled'];
+  var REPEAT = ['No, this is a one-time show', 'Yes, every month on the same week and day (for example, every 2nd Sunday)', 'Yes, another schedule (tell us under "Anything else at the show?")'];
+  var PUBLIC = ['Yes, show them on the show page', 'No, keep them private'];
+  var pick = function (key, i, fallback) { var c = C[key]; return c && c[i] !== undefined ? c[i] : fallback[i]; };
+  var $ = function (n) { return form.querySelector('[name="' + n + '"]'); };
+  var params = new URLSearchParams(location.search);
+
+  // fill in from the link
+  params.forEach(function (v, k) {
+    var el = $(k);
+    if (el && el.type !== 'radio' && el.type !== 'checkbox') {
+      if (el.type === 'date') { var m = String(v).match(/^\d{4}-\d{2}-\d{2}/); el.value = m ? m[0] : ''; }
+      else el.value = v;
+    }
+  });
+  var isUpdate = !!params.get('show_id');
+  if (isUpdate) {
+    document.getElementById('still-on-sec').hidden = false;
+    document.getElementById('repeat-sec').hidden = true;
+    document.getElementById('sub-h1').textContent = 'Update your coin show';
+    document.getElementById('sub-lede').textContent = 'Your show\'s details are filled in. Change anything that\'s different, then press Send.';
+    var so = { yes: 0, changed: 1, postponed: 2, cancelled: 3 }[params.get('still_on') || ''];
+    if (so !== undefined) form.querySelector('[name="still_on"][value="' + so + '"]').checked = true;
+    form.querySelector('button[type=submit] span').textContent = 'Send update';
+  }
+  if (params.get('public') === 'yes') form.querySelector('[name="public"][value="1"]').checked = true;
+
+  // repeating shows: show the dates we'll add
+  var repCount = form.querySelector('.rep-count'), repDates = document.getElementById('rep-dates');
+  var monthly = function (start, count) {
+    var dow = start.getDay(), n = Math.ceil(start.getDate() / 7), out = [];
+    for (var k = 1; k <= count; k++) {
+      var y = start.getFullYear(), mo = start.getMonth() + k, last = new Date(y, mo + 1, 0).getDate();
+      var day = 1 + (dow - new Date(y, mo, 1).getDay() + 7) % 7 + 7 * (n - 1);
+      if (n === 5 || day > last) day = last - (new Date(y, mo, last).getDay() - dow + 7) % 7;
+      out.push(new Date(y, mo, day));
+    }
+    return out;
+  };
+  var showRepeat = function () {
+    var r = form.querySelector('[name="repeat"]:checked'), on = r && r.value === '1';
+    repCount.hidden = !on;
+    var sd = $('start_date').value;
+    if (on && sd) {
+      var p = sd.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
+      repDates.textContent = 'We\'ll add: ' + monthly(d, +$('repeat_count').value).map(function (x) { return x.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }).join(', ');
+    } else repDates.textContent = on ? 'Pick the first day above to see the dates.' : '';
+  };
+  form.addEventListener('change', function (e) { if (/repeat|start_date/.test(e.target.name)) showRepeat(); });
+  form.addEventListener('input', function (e) { var f = e.target.closest('.is-bad'); if (f && e.target.checkValidity()) f.classList.remove('is-bad'); });
+  form.addEventListener('change', function (e) { var f = e.target.closest('.is-bad'); if (f && (e.target.type === 'radio' || e.target.checkValidity())) f.classList.remove('is-bad'); });
+  showRepeat();
+
+  var err = form.querySelector('.form-err'), btn = form.querySelector('button[type=submit]');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    err.hidden = true;
+    var bad = Array.prototype.filter.call(form.querySelectorAll('[required]'), function (el) { return el.closest('[hidden]') ? false : !el.checkValidity(); });
+    if (isUpdate && !form.querySelector('[name="still_on"]:checked')) bad.unshift(form.querySelector('[name="still_on"]'));
+    form.querySelectorAll('.is-bad').forEach(function (x) { x.classList.remove('is-bad'); });
+    if (bad.length) {
+      bad.forEach(function (el) { var f = el.closest('.fld, .sec, .agree'); if (f) f.classList.add('is-bad'); });
+      err.textContent = 'Please fill in: ' + bad.map(function (el) { var l = el.closest('.fld'); return l ? l.querySelector('label').firstChild.textContent.trim() : el.name === 'authorized' ? 'the confirmation box' : 'is the show still happening'; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', ') + '.';
+      err.hidden = false;
+      (bad[0].focus ? bad[0] : err).focus();
+      return;
+    }
+    if ($('company_site').value) { done(); return; } // a spam robot filled the hidden box
+    var body = new URLSearchParams(), add = function (key, val) { if (E[key] && val !== '' && val != null) body.append(E[key], val); };
+    ['show_id', 'show_name', 'start_date', 'hours', 'admission', 'venue', 'address', 'city', 'state', 'zip', 'dealer_tables', 'website', 'specialties', 'extras', 'organizer', 'contact_name', 'email', 'contact_phone']
+      .forEach(function (k) { var el = $(k); if (el) add(k, el.value.trim()); });
+    add('end_date', ($('end_date').value || $('start_date').value).trim());
+    var so = form.querySelector('[name="still_on"]:checked');
+    add('still_on', pick('still_on', so && isUpdate ? +so.value : 0, STILL));
+    if (!isUpdate) {
+      var rp = form.querySelector('[name="repeat"]:checked');
+      if (rp) add('repeat', pick('repeat', +rp.value, REPEAT));
+      if (rp && rp.value === '1') add('repeat_count', $('repeat_count').value);
+    }
+    var pub = form.querySelector('[name="public"]:checked');
+    add('public_contact', pick('public_contact', pub && pub.value === '1' ? 0 : 1, PUBLIC));
+    add('authorized', pick('authorized', 0, ['I organize this show or am allowed to update it']));
+    btn.disabled = true; btn.querySelector('span').textContent = 'Sending...';
+    fetch(form.getAttribute('data-post'), { method: 'POST', mode: 'no-cors', body: body })
+      .then(done, function () {
+        btn.disabled = false; btn.querySelector('span').textContent = isUpdate ? 'Send update' : 'Send my show';
+        err.textContent = 'It did not send. Check your internet connection and try again.'; err.hidden = false;
+      });
+    if (typeof countTap === 'function') countTap(isUpdate ? 'show-update' : 'show-submit');
+  });
+  function done() {
+    var d = document.getElementById('sub-done');
+    document.getElementById('done-email').textContent = $('email').value;
+    if (isUpdate) d.querySelector('p').textContent = 'We got your update. Changes usually show on the site within a day, often within the hour.';
+    form.hidden = true; d.hidden = false; d.focus(); d.scrollIntoView({ block: 'start' });
+  }
+})();
