@@ -672,3 +672,97 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
     form.hidden = true; d.hidden = false; d.focus(); d.scrollIntoView({ block: 'start' });
   }
 })();
+
+/* "Already listed? Find your show": search upcoming shows by name, city or state, with Update and Upload buttons. */
+(function () {
+  var q = document.getElementById('find-q');
+  if (!q) return;
+  var list = document.getElementById('find-results'), count = document.getElementById('find-count'), rows = null, loading = false, wait = null;
+  var norm = function (t) { return String(t || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim(); };
+  var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var load = function () {
+    if (rows || loading) return; loading = true;
+    fetch(q.getAttribute('data-src')).then(function (r) { return r.json(); }).then(function (d) { rows = d.map(function (r) { return { r: r, t: norm([r[0], r[2], r[3], r[4], r[5]].join(' ')) }; }); draw(); })
+      .catch(function () { count.textContent = 'Could not load the show list. Please refresh the page.'; });
+  };
+  var draw = function () {
+    var words = norm(q.value).split(' ').filter(Boolean);
+    if (!words.length) { list.innerHTML = ''; count.textContent = ''; return; }
+    if (!rows) { count.textContent = 'Loading shows...'; return; }
+    var hits = rows.filter(function (x) { return words.every(function (w) { return (' ' + x.t).indexOf(' ' + w) > -1; }); });
+    count.textContent = hits.length ? (hits.length > 12 ? 'Showing 12 of ' + hits.length + '. Type more to narrow it down.' : hits.length + ' show' + (hits.length === 1 ? '' : 's') + ' found.') : 'No upcoming show matches. Not listed yet? Use the form below to add it.';
+    list.innerHTML = hits.slice(0, 12).map(function (x) {
+      var r = x.r;
+      return '<li><div class="fs-main"><span class="fs-name">' + esc(r[0]) + (r[9] ? ' <span class="tag tag-cancel">Cancelled</span>' : '') + '</span><span class="fs-meta">' + esc(r[1]) + ' · ' + esc(r[2]) + ', ' + esc(r[3]) + (r[5] ? ' · ' + esc(r[5]) : '') + '</span></div>' +
+        '<div class="fs-btns"><a class="btn btn-gold btn-sm" href="' + esc(r[6]) + '">Update this show</a><a class="btn btn-ghost btn-sm" href="' + esc(r[7]) + '">Dealer list</a><a class="btn btn-ghost btn-sm" href="' + esc(r[8]) + '">Dealer application</a></div></li>';
+    }).join('');
+  };
+  q.addEventListener('focus', load);
+  q.addEventListener('input', function () { load(); clearTimeout(wait); wait = setTimeout(draw, 120); });
+  // the links reload this page with the show filled in; make sure the right form is in view
+  list.addEventListener('click', function (e) { var a = e.target.closest('a'); if (a && typeof countTap === 'function') countTap('find-show'); });
+})();
+
+/* Dealer profile form (Claim this profile / Update this profile). Sends to the Google Sheet's upload service for review. */
+(function () {
+  var form = document.getElementById('dealer-form');
+  if (!form) return;
+  var p = new URLSearchParams(location.search), key = p.get('key') || '';
+  if (!/^[a-z0-9][a-z0-9-]{1,118}$/.test(key)) return;
+  var $ = function (n) { return form.querySelector('[name="' + n + '"]'); };
+  form.hidden = false; document.getElementById('dp-none').hidden = true;
+  document.getElementById('dp-key').value = key;
+  var name = p.get('name') || key;
+  document.getElementById('dp-name').textContent = name;
+  document.getElementById('dp-crumb').textContent = name;
+  document.getElementById('dp-back').setAttribute('href', '../../dealer/' + key + '/');
+  if (p.get('v') === '1') {
+    document.getElementById('dp-h1').textContent = 'Update your dealer profile';
+    document.getElementById('dp-lede').textContent = 'Your current details are filled in. Change anything that\'s different, then press Send.';
+    form.querySelector('button[type=submit] span').textContent = 'Send update';
+  }
+  ['website', 'store', 'phone', 'public_email'].forEach(function (k) { if (p.get(k)) $(k).value = p.get(k); });
+  var specs = (p.get('specialties') || '').split(/\s*,\s*/);
+  form.querySelectorAll('[name="specialties"]').forEach(function (c) { c.checked = specs.indexOf(c.value) > -1; });
+  var groups = (p.get('memberships') || '').split(/\s*,\s*/).filter(Boolean), known = [];
+  form.querySelectorAll('[name="groups"]').forEach(function (c) { if (groups.indexOf(c.value) > -1) { c.checked = true; known.push(c.value); } });
+  $('groups_other').value = groups.filter(function (g) { return known.indexOf(g) === -1; }).join(', ');
+  form.addEventListener('input', function (e) { var f = e.target.closest('.is-bad'); if (f && e.target.checkValidity()) f.classList.remove('is-bad'); });
+  form.addEventListener('change', function (e) { var f = e.target.closest('.is-bad'); if (f && e.target.checkValidity()) f.classList.remove('is-bad'); });
+  var err = form.querySelector('.form-err'), btn = form.querySelector('button[type=submit]'), lab = btn.querySelector('span'), label0 = lab.textContent;
+  var fail = function (m) { err.textContent = m; err.hidden = false; btn.disabled = false; lab.textContent = label0; err.scrollIntoView({ block: 'center' }); };
+  form.addEventListener('submit', function (e) {
+    e.preventDefault(); err.hidden = true;
+    form.querySelectorAll('.is-bad').forEach(function (x) { x.classList.remove('is-bad'); });
+    var bad = Array.prototype.filter.call(form.querySelectorAll('input[required], input[type=email], input[type=url]'), function (el) { return !el.checkValidity(); });
+    if (bad.length) {
+      bad.forEach(function (el) { var f = el.closest('.fld, .agree'); if (f) f.classList.add('is-bad'); });
+      return fail('Please check: ' + bad.map(function (el) { return el.type === 'checkbox' ? 'the confirmation box' : el.closest('.fld').querySelector('label').firstChild.textContent.trim(); }).join(', ') + '.');
+    }
+    if ($('company_site').value) return done();
+    var groupsOut = Array.prototype.map.call(form.querySelectorAll('[name="groups"]:checked'), function (c) { return c.value; })
+      .concat($('groups_other').value.split(/\s*,\s*/).filter(Boolean));
+    var data = { kind: 'dealer', key: key, business_name: name,
+      contact_name: $('contact_name').value.trim(), contact_role: $('contact_role').value.trim(), contact_email: $('contact_email').value.trim(), contact_phone: $('contact_phone').value.trim(),
+      specialties: Array.prototype.map.call(form.querySelectorAll('[name="specialties"]:checked'), function (c) { return c.value; }), memberships: groupsOut.join(', '),
+      website: $('website').value.trim(), store: $('store').value.trim(), phone: $('phone').value.trim(), public_email: $('public_email').value.trim(),
+      message: $('message').value.trim(), authorized: $('authorized').checked };
+    var send = function () {
+      btn.disabled = true; lab.textContent = 'Sending...';
+      fetch(form.getAttribute('data-post'), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (j && j.ok) done(); else fail((j && j.error) || 'It did not send. Please try again.'); })
+        .catch(function () { fail('It did not send. Check your internet connection and try again.'); });
+      if (typeof countTap === 'function') countTap(p.get('v') === '1' ? 'dealer-update' : 'dealer-claim');
+    };
+    var f = $('logo').files[0];
+    if (!f) return send();
+    if (!/\.(png|jpe?g|webp)$/i.test(f.name)) { $('logo').closest('.fld').classList.add('is-bad'); return fail('Your logo must be a PNG or JPG picture.'); }
+    if (f.size > 2 * 1024 * 1024) { $('logo').closest('.fld').classList.add('is-bad'); return fail('Your logo is larger than 2 MB. Please choose a smaller picture.'); }
+    var rd = new FileReader();
+    rd.onload = function () { data.logo_name = f.name; data.logo_mime = f.type; data.logo_data = String(rd.result).split(',')[1] || ''; send(); };
+    rd.onerror = function () { fail('Could not read that picture. Please choose it again.'); };
+    rd.readAsDataURL(f);
+  });
+  function done() { var d = document.getElementById('dp-done'); form.hidden = true; d.hidden = false; d.focus(); d.scrollIntoView({ block: 'start' }); }
+})();
