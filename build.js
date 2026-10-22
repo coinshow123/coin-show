@@ -45,6 +45,8 @@ const stateSlug = c => STATES[c].toLowerCase().replace(/[^a-z]+/g, '-');
 
 /* ---------- small helpers ---------- */
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/* Short permanent link for a show, from its show_id: /s/wa-kent-2026-12-05/. Used in organizer emails and badges, so it keeps working if the show is renamed. */
+const shortId = s => String(s.showId || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 const slugify = s => String(s).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 70);
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -684,7 +686,7 @@ ${body(h)}
 <div><p class="foot-name">${brandHTML()}</p><p class="foot-tag">${esc(config.tagline || '')}</p><p>Show dates can change. Always confirm with the organizer before you travel.</p></div>
 <nav class="foot-nav" aria-label="Footer">
 <div><p class="foot-h">Find shows</p><a href="${h('') + '#all'}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a></div>
-<div><p class="foot-h">Dealers &amp; selling</p><a href="${h('dealers/')}">Dealers</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('submit/')}">List your show</a></div>
+<div><p class="foot-h">Dealers &amp; selling</p><a href="${h('dealers/')}">Dealers</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('submit/')}">List your show</a><a href="${h('for-organizers/')}">For organizers</a></div>
 <div><p class="foot-h">${esc(NAME)}</p><a href="${h('about/')}">About</a><a href="mailto:${esc(config.contactEmail)}">Contact us</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></div>
 </nav>
 </div>
@@ -952,7 +954,7 @@ ${s.dealerApp ? `<div class="dealer-app"><div><strong>Want a table at this show?
 
 <aside class="promoter-box" aria-labelledby="h-promo-${esc(s.slug)}"><div><span class="sp-k">For the organizer</span><h2 id="h-promo-${esc(s.slug)}">Run this show? Update it free.</h2>
 <p>Fix the date or hours, add your dealer list, upload your dealer application so dealers can download it, and choose whether to show your contact info here.</p></div>
-<div class="promo-btns"><a class="btn btn-gold" href="${esc(updateLink(s))}" target="_blank" rel="noopener">Update this show</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">${s.dealers.length ? 'Replace dealer list' : 'Upload dealer list'}</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">${s.dealerApp ? 'Replace dealer application' : 'Upload dealer application'}</a></div></aside>
+<div class="promo-btns"><a class="btn btn-gold" href="${esc(updateLink(s))}" target="_blank" rel="noopener">Update this show</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">${s.dealers.length ? 'Replace dealer list' : 'Upload dealer list'}</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">${s.dealerApp ? 'Replace dealer application' : 'Upload dealer application'}</a>${s.showId ? `<a class="btn btn-ghost" href="${h('for-organizers/')}?show=${encodeURIComponent(shortId(s))}#badge">Get a badge for your website</a>` : ''}</div></aside>
 
 <section class="block share" aria-labelledby="h-share"><div class="share-bar">
 <div><h2 id="h-share">Going? Bring a friend.</h2><p class="muted">Send this show to someone who collects.</p></div>
@@ -973,6 +975,11 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
 </div>
 </article>` });
     fs.writeFileSync(path.join(OUT, s.path, 'event.ics'), ics(s));
+    if (shortId(s)) {
+      const to = `${SITE}/${s.path}`, dir = path.join(OUT, 's', shortId(s));
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(s.name)}</title><meta name="robots" content="noindex"><link rel="canonical" href="${esc(to)}"><meta http-equiv="refresh" content="0; url=../../${s.path}"></head><body><p><a href="../../${s.path}">${esc(s.name)}</a></p><script>location.replace('../../${s.path}'+location.hash)</script></body></html>`);
+    }
     fs.mkdirSync(path.join(OUT, 'covers'), { recursive: true });
     fs.writeFileSync(path.join(OUT, 'covers', s.slug + '.svg'), coverSVG(s));
   }
@@ -990,8 +997,34 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
 <aside class="stack">
 <div class="card"><h2>How it works</h2><ol><li>Fill out the form. It takes about 3 minutes.</li><li>We check the details with your club or website.</li><li>Your show goes live with its own page, map link and calendar button.</li></ol></div>
 <div class="card"><h2>What to have ready</h2><ul><li>Show name and dates</li><li>Venue name and street address</li><li>Public hours and admission</li><li>Number of dealer tables</li><li>Website or Facebook page</li><li>Dealer application link (optional)</li><li>Your name and email (private unless you choose to show them)</li></ul></div>
-<div class="card card-gold"><h2>Featured listing${config.featuredPrice ? ' · ' + esc(config.featuredPrice) : ''}</h2><p>Top of your state's list for 30 days, a gold Featured badge, and a spot on the home page.</p><p>Email <strong class="sel">${esc(config.contactEmail)}</strong> to reserve.</p></div>
+${config.featuredPrice ? `<div class="card card-gold"><h2>Featured listing · ${esc(config.featuredPrice)}</h2><p>Top of your state's list for 30 days, a gold Featured badge, and a spot on the home page.</p><p>Email <strong class="sel">${esc(config.contactEmail)}</strong> to reserve.</p></div>` : ''}
+<div class="card"><h2>Organizer tools</h2><p>Update your show, send a dealer list, and get a badge for your club website.</p><a class="btn btn-ghost btn-sm" href="${h('for-organizers/')}">For organizers</a></div>
 </aside>
+</div>` });
+  // For organizers: everything a club or promoter can do, plus the website badge
+  const dealerListForm = UPLOAD_FORM && UPLOAD_FORM.url ? UPLOAD_FORM.url + (UPLOAD_FORM.entries && UPLOAD_FORM.entries.kind && UPLOAD_FORM.kinds ? '?usp=pp_url&' + UPLOAD_FORM.entries.kind + '=' + encodeURIComponent(UPLOAD_FORM.kinds.list) : '') : `mailto:${config.contactEmail}?subject=${encodeURIComponent('Dealer list for my show')}`;
+  const badgeCode = `<a href="${SITE}/"><img src="${SITE}/assets/badge-dark.png" alt="Listed on ${NAME}" width="260" height="64"></a>`;
+  page({ p: 'for-organizers/', active: 'submit', title: `For Coin Show Organizers and Clubs | ${NAME}`,
+    desc: `Coin clubs and show promoters: list your show free, keep it up to date, post your dealer list, and add a ${NAME} badge to your website.`,
+    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › For organizers</p><h1>For show organizers and clubs</h1><p class="lede">List your coin show free, keep it up to date, and bring more collectors through the door.</p></div>
+<div class="org-steps">
+<div class="card"><span class="org-n" aria-hidden="true">1</span><h2>List your show free</h2><p>Dates, venue, hours and admission. It takes about 3 minutes. We check every listing and usually publish it within two business days. A show that repeats every month? Tell us once and we add the next dates.</p><a class="btn btn-primary btn-sm" href="${h('submit/')}">List your show</a></div>
+<div class="card"><span class="org-n" aria-hidden="true">2</span><h2>Keep it up to date</h2><p>Every show page has an <strong>Update this show</strong> button with your details already filled in. Once we know you, updates go live the same day.</p><a class="btn btn-ghost btn-sm" href="${h('states/')}">Find your show</a></div>
+<div class="card"><span class="org-n" aria-hidden="true">3</span><h2>Send your dealer list</h2><p>Collectors look up which dealers are coming. Send a PDF or spreadsheet and we post it on your show page, with each dealer and table number.</p><a class="btn btn-ghost btn-sm" href="${esc(dealerListForm)}" target="_blank" rel="noopener">Send a dealer list</a></div>
+<div class="card"><span class="org-n" aria-hidden="true">4</span><h2>Confirm before the show</h2><p>30 days before your show we email you one question: is it still on? One tap, and your page shows <strong>Details checked</strong> so collectors know they can trust the date.</p></div>
+</div>
+<div class="two">
+<section class="block org-badge" id="badge" aria-labelledby="h-badge"><h2 id="h-badge">Put our badge on your club website</h2><p>Show your members where to find your dates. The badge links straight to your show's page.</p>
+<div class="badge-row"><img src="${h('assets/badge-dark.png')}" alt="Listed on ${esc(NAME)} badge, dark" width="260" height="64"><img src="${h('assets/badge-light.png')}" alt="Listed on ${esc(NAME)} badge, light" width="260" height="64"></div>
+<fieldset class="badge-pick"><legend>Badge color</legend><label><input type="radio" name="badge-color" value="dark" checked> Dark</label><label><input type="radio" name="badge-color" value="light"> Light</label></fieldset>
+<p class="small muted" id="badge-note">Copy this code and paste it into your website. To link the badge to your own show, use the <strong>Get a badge</strong> button on your show's page.</p>
+<pre class="code" id="badge-code" data-site="${esc(SITE)}" data-name="${esc(NAME)}">${esc(badgeCode)}</pre>
+<button class="btn btn-ghost btn-sm" type="button" data-copy-from="badge-code"><span>Copy code</span></button></section>
+<aside class="stack org-aside"><div class="card"><h2>Questions</h2><dl class="faq">
+<dt>Is it really free?</dt><dd>Yes. Listing, updates, dealer lists and the badge are all free.</dd>
+<dt>Who sees my email?</dt><dd>Nobody, unless you choose to show it on your show page. We use it to confirm your show.</dd>
+<dt>How do I take my show down?</dt><dd>Use <strong>Update this show</strong> and choose Canceled. Collectors who saved it see that it's off.</dd>
+<dt>Something else?</dt><dd>Email <a href="mailto:${esc(config.contactEmail)}">${esc(config.contactEmail)}</a>.</dd></dl></div></aside>
 </div>` });
 
   // Sell your coins
@@ -1206,7 +1239,7 @@ async function main() {
 
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
-  for (const f of ['style.css', 'app.js', 'share.png', 'icon-48.png', 'icon-180.png', 'logo.svg', 'favicon.svg']) if (fs.existsSync(path.join(ROOT, 'assets', f))) fs.copyFileSync(path.join(ROOT, 'assets', f), path.join(OUT, 'assets', f));
+  for (const f of ['style.css', 'app.js', 'share.png', 'icon-48.png', 'icon-180.png', 'logo.svg', 'favicon.svg', 'badge-dark.png', 'badge-light.png']) if (fs.existsSync(path.join(ROOT, 'assets', f))) fs.copyFileSync(path.join(ROOT, 'assets', f), path.join(OUT, 'assets', f));
   fs.copyFileSync(path.join(ROOT, 'data/zip3.json'), path.join(OUT, 'assets/zip3.json'));
   if (fs.existsSync(path.join(ROOT, 'photos'))) fs.cpSync(path.join(ROOT, 'photos'), path.join(OUT, 'photos'), { recursive: true });
   // dealer applications you upload yourself (PDFs), referenced by file name in the dealer_application column
