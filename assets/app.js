@@ -482,3 +482,32 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
     document.querySelectorAll('details.cal-menu[open]').forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute('open'); });
   });
 })();
+
+/* For organizers page: badge code that links to the organizer's own show (?show=<id>), dark or light, with a Copy button */
+(function () {
+  var pre = document.getElementById('badge-code');
+  if (!pre) return;
+  var site = pre.getAttribute('data-site'), name = pre.getAttribute('data-name');
+  var m = location.search.match(/[?&]show=([a-z0-9-]{3,80})/i), id = m ? m[1].toLowerCase() : '';
+  function draw() {
+    var picked = document.querySelector('input[name="badge-color"]:checked'), color = picked ? picked.value : 'dark';
+    pre.textContent = '<a href="' + site + '/' + (id ? 's/' + id + '/' : '') + '"><img src="' + site + '/assets/badge-' + color + '.png" alt="Listed on ' + name + '" width="260" height="64"></a>';
+  }
+  if (id) {
+    var note = document.getElementById('badge-note');
+    if (note) note.textContent = 'This code links to your show. Copy it and paste it into your website.';
+  }
+  document.querySelectorAll('input[name="badge-color"]').forEach(function (r) { r.addEventListener('change', draw); });
+  draw();
+  document.querySelectorAll('[data-copy-from]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = document.getElementById(b.getAttribute('data-copy-from')), lab = b.querySelector('span') || b, old = lab.textContent;
+      if (!t) return;
+      var done = function (msg) { lab.textContent = msg; setTimeout(function () { lab.textContent = old; }, 2000); };
+      var sel = function () { var r = document.createRange(); r.selectNodeContents(t); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); };
+      if (navigator.clipboard) navigator.clipboard.writeText(t.textContent).then(function () { done('Copied'); }, function () { sel(); done('Press Ctrl+C to copy'); });
+      else { sel(); done('Press Ctrl+C to copy'); }
+      if (typeof countTap === 'function') countTap('badge-copy');
+    });
+  });
+})();

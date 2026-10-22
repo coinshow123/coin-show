@@ -671,3 +671,15 @@ tr.is-major .dtile .tm{color:var(--brass-dark)}
   .shows tr:active{background:var(--wine-tint)!important}
 }
 .notice-confirm{border-color:#D88A4E;background:#FDF0E6}
+
+/* For organizers page */
+.org-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin:8px 0 34px}
+.org-steps .card{display:flex;flex-direction:column;align-items:flex-start}
+.org-steps .card h2{font-size:22px;margin:.35em 0 .35em}.org-steps .card p{margin:0 0 16px;flex:1}
+.org-n{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--brass-tint);border:1.5px solid var(--brass);color:var(--brass-dark);font-weight:700}
+.org-badge{flex:1 1 520px;min-width:0}.org-aside{flex:1 1 300px}
+.badge-row{display:flex;flex-wrap:wrap;gap:16px;margin:14px 0 14px}.badge-row img{display:block;max-width:100%;height:auto}
+.badge-pick{border:0;padding:0;margin:0 0 12px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}.badge-pick legend{font-weight:700;float:left;margin-right:14px;padding:0}
+.badge-pick label{display:inline-flex;align-items:center;gap:8px;min-height:44px;cursor:pointer}.badge-pick input{width:20px;height:20px;accent-color:var(--wine)}
+.code{font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:12px 14px;white-space:pre-wrap;word-break:break-all;margin:0 0 12px}
+.faq dt{font-weight:700;margin-top:14px}.faq dt:first-child{margin-top:0}.faq dd{margin:4px 0 0}
