@@ -29,6 +29,8 @@ const NAME = config.siteName || 'The Coin Calendar';
 /* "Update this show" form. Made by the Google Sheet (Settings > 3) and saved as data/update-form.json. */
 const readJson = f => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8')); } catch (e) { return null; } };
 const UPDATE_FORM = readJson('data/update-form.json');
+/* Where the website's own upload form sends files (Settings > 6 in the Google Sheet). Until then, the Google upload form is used. */
+const SITE_UPLOAD = (j => j && /^https:\/\/script\.google\.com\/macros\/s\/[-\w]+\/exec$/.test(j.post) ? j : null)(readJson('data/site-upload.json'));
 /* Dealer application upload form for organizers (Settings > 4 in the Google Sheet). */
 const UPLOAD_FORM = readJson('data/upload-form.json');
 /* "Claim or update this profile" form for dealers (Settings > 5 in the Google Sheet). */
@@ -740,7 +742,8 @@ function updateLink(s, h) {
   return `mailto:${config.contactEmail}?subject=${encodeURIComponent('Update my show: ' + s.name + ' (' + f.date + ')')}&body=${encodeURIComponent(body)}`;
 }
 /* Organizer uploads this show's dealer application. Before the form exists: email with the file attached. */
-function uploadLink(s, kind) {
+function uploadLink(s, kind, h) {
+  if (SITE_UPLOAD && h && s.showId) return h('submit/') + '?upload=' + kind + '&up_show=' + encodeURIComponent(s.showId) + '&up_name=' + encodeURIComponent(s.name + ' (' + fmt(s).date + ')') + '#upload';
   if (UPLOAD_FORM && UPLOAD_FORM.url && UPLOAD_FORM.entries) {
     const kindValue = kind && UPLOAD_FORM.kinds ? UPLOAD_FORM.kinds[kind] : '';
     const q = [['kind', kindValue], ['show_id', s.showId], ['show_name', s.name]].filter(([k, v]) => UPLOAD_FORM.entries[k] && v)
@@ -951,14 +954,14 @@ ${showsContact(s) ? `<div class="kv kv-contact"><dt>Contact</dt><dd>${s.contactN
 ${s.dealers.length > 15 ? `<div class="dealer-search dealer-search-head" role="search"><label for="dealer-find">Find a dealer</label><input id="dealer-find" type="search" placeholder="Dealer name or table number" autocomplete="off" data-filter-list="dealer-list"></div>` : ''}</div>
 ${s.dealers.length ? `<ul class="dealers" id="dealer-list"${s.dealers.length > 40 ? ' data-paginate="40"' : ''}>${s.dealers.map(d => `<li><span class="dl-name">${d.path ? `<a href="${h(d.path)}">${esc(d.name)}</a>` : esc(d.name)}${d.entry && d.entry.verified ? vTick() : ''}</span>${d.table ? ` <span class="dl-table">#${esc(String(d.table).replace(/^#/, ''))}</span>` : ''}${d.city || d.st ? ` <span class="dl-loc">${esc([d.city, d.st].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>
 <nav class="pager" data-pager-for="dealer-list" aria-label="Dealer list pages" hidden></nav>
-<p class="empty" data-empty-for-filter="dealer-list" hidden>No dealer matches that search.</p>` : `<p class="small app-none">Organizer? <a href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">Upload your dealer list</a> (PDF, Excel or CSV) and we will add it here.</p>`}
-${s.dealerApp ? `<div class="dealer-app"><div><strong>Want a table at this show?</strong><span class="muted"> Download the organizer's dealer application, fill it out and send it to them.</span></div><a class="btn btn-primary" href="${esc(appHref(s, h))}" target="_blank" rel="noopener"${!/^https?:/i.test(s.dealerApp) ? ' download' : ''}>${appLabel(s)}</a></div>` : `<p class="small app-none">The dealer application for this show has not been posted yet. <a href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">Organizer? Upload it here.</a></p>`}
+<p class="empty" data-empty-for-filter="dealer-list" hidden>No dealer matches that search.</p>` : `<p class="small app-none">Organizer? <a href="${esc(uploadLink(s, 'list', h))}"${SITE_UPLOAD ? '' : ' target="_blank" rel="noopener"'}>Upload your dealer list</a> (PDF, Excel or CSV) and we will add it here.</p>`}
+${s.dealerApp ? `<div class="dealer-app"><div><strong>Want a table at this show?</strong><span class="muted"> Download the organizer's dealer application, fill it out and send it to them.</span></div><a class="btn btn-primary" href="${esc(appHref(s, h))}" target="_blank" rel="noopener"${!/^https?:/i.test(s.dealerApp) ? ' download' : ''}>${appLabel(s)}</a></div>` : `<p class="small app-none">The dealer application for this show has not been posted yet. <a href="${esc(uploadLink(s, 'application', h))}"${SITE_UPLOAD ? '' : ' target="_blank" rel="noopener"'}>Organizer? Upload it here.</a></p>`}
 
 </section>
 
 <aside class="promoter-box" aria-labelledby="h-promo-${esc(s.slug)}"><div><span class="sp-k">For the organizer</span><h2 id="h-promo-${esc(s.slug)}">Run this show? Update it free.</h2>
 <p>Fix the date or hours, add your dealer list, upload your dealer application so dealers can download it, and choose whether to show your contact info here.</p></div>
-<div class="promo-btns"><a class="btn btn-gold" href="${esc(updateLink(s, h))}"${UPDATE_FORM && UPDATE_FORM.v === 2 ? '' : ' target="_blank" rel="noopener"'}>Update this show</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">${s.dealers.length ? 'Replace dealer list' : 'Upload dealer list'}</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">${s.dealerApp ? 'Replace dealer application' : 'Upload dealer application'}</a>${s.showId ? `<a class="btn btn-ghost" href="${h('submit/')}?show=${encodeURIComponent(shortId(s))}#badge">Get a badge for your website</a>` : ''}</div></aside>
+<div class="promo-btns"><a class="btn btn-gold" href="${esc(updateLink(s, h))}"${UPDATE_FORM && UPDATE_FORM.v === 2 ? '' : ' target="_blank" rel="noopener"'}>Update this show</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'list', h))}"${SITE_UPLOAD ? '' : ' target="_blank" rel="noopener"'}>${s.dealers.length ? 'Replace dealer list' : 'Upload dealer list'}</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'application', h))}"${SITE_UPLOAD ? '' : ' target="_blank" rel="noopener"'}>${s.dealerApp ? 'Replace dealer application' : 'Upload dealer application'}</a>${s.showId ? `<a class="btn btn-ghost" href="${h('submit/')}?show=${encodeURIComponent(shortId(s))}#badge">Get a badge for your website</a>` : ''}</div></aside>
 
 <section class="block share" aria-labelledby="h-share"><div class="share-bar">
 <div><h2 id="h-share">Going? Bring a friend.</h2><p class="muted">Send this show to someone who collects.</p></div>
@@ -1041,6 +1044,28 @@ ${fld('contact_phone', 'Your phone', { type: 'tel', attrs: 'autocomplete="tel"' 
     : `<div class="callout"><p>Email your show details to <strong class="sel">${esc(config.contactEmail)}</strong> and we'll add it.</p></div>`;
   const dealerListForm = UPLOAD_FORM && UPLOAD_FORM.url ? UPLOAD_FORM.url + (UPLOAD_FORM.entries && UPLOAD_FORM.entries.kind && UPLOAD_FORM.kinds ? '?usp=pp_url&' + UPLOAD_FORM.entries.kind + '=' + encodeURIComponent(UPLOAD_FORM.kinds.list) : '') : `mailto:${config.contactEmail}?subject=${encodeURIComponent('Dealer list for my show')}`;
   const badgeCode = `<a href="${SITE}/"><img src="${SITE}/assets/badge-dark.png" alt="Listed on ${NAME}" width="260" height="64"></a>`;
+  const uploadBlock = h => SITE_UPLOAD ? `<section class="block up-block" id="upload" aria-labelledby="h-upload"><h2 id="h-upload">Send a dealer list or dealer application</h2>
+<div class="up-none card"><p>Open your show's page and press <strong>Upload dealer list</strong> or <strong>Upload dealer application</strong>. This form opens here with your show filled in.</p><a class="btn btn-ghost btn-sm" href="${h('states/')}">Find your show</a></div>
+<form class="sub-form up-form" id="upload-form" novalidate hidden data-post="${esc(SITE_UPLOAD.post)}" data-max="${Number(SITE_UPLOAD.maxMB) || 10}">
+<input type="hidden" name="show_id" id="up-show_id">
+<div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="company_site" tabindex="-1" autocomplete="off"></label></div>
+<p class="up-show">For <strong id="up-show-name"></strong></p>
+<fieldset class="sec"><legend>What are you sending?</legend><div class="choices">
+<label><input type="radio" name="kind" value="list" checked> <span><strong>Dealer list</strong> <span class="muted">(who is setting up, with table numbers)</span></span></label>
+<label><input type="radio" name="kind" value="application"> <span><strong>Dealer application</strong> <span class="muted">(dealers download it from your show page)</span></span></label></div></fieldset>
+<fieldset class="sec"><legend>Your file</legend>
+<div class="fld"><label for="up-file">Choose the file</label><input type="file" id="up-file" name="file" required accept=".pdf,.xlsx,.xls,.csv" aria-describedby="up-file-hint"><span class="hint" id="up-file-hint">PDF, Excel or CSV, up to 10 MB</span></div></fieldset>
+<fieldset class="sec"><legend>About you</legend><p class="muted small sec-note">Kept private. We use it only if we have a question about the file.</p><div class="fgrid">
+${fld('up_name', 'Your name', { req: 1, attrs: 'autocomplete="name"' }).replace('id="f-up_name"', 'id="up-name"').replace('for="f-up_name"', 'for="up-name"')}
+${fld('up_email', 'Your email', { req: 1, type: 'email', attrs: 'autocomplete="email"' }).replace('id="f-up_email"', 'id="up-email"').replace('for="f-up_email"', 'for="up-email"')}
+</div>
+<label class="agree"><input type="checkbox" name="authorized" required> <span>I organize this show or am allowed to send this file</span></label></fieldset>
+<p class="form-err" role="alert" hidden></p>
+<button class="btn btn-primary btn-big" type="submit"><span>Send file</span></button>
+<p class="muted small">We check every file before it goes on your show page, usually within two business days.</p>
+</form>
+<div class="sub-done card" id="up-done" hidden tabindex="-1"><h2>Thank you!</h2><p id="up-done-text">We got your file. We check it and add it to your show page, usually within two business days.</p></div>
+</section>` : '';
   page({ p: 'submit/', active: 'submit', title: `List Your Coin Show Free | ${NAME}`,
     desc: `Coin clubs and show promoters: list or update your coin show free on ${NAME}, post your dealer list, and add our badge to your website.`,
     body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › List your show</p><h1 id="sub-h1">List your coin show free</h1><p class="lede" id="sub-lede">Tell collectors when and where your show is. They find it by ZIP code, state and date.</p></div>
@@ -1049,9 +1074,10 @@ ${fld('contact_phone', 'Your phone', { type: 'tel', attrs: 'autocomplete="tel"' 
 <aside class="stack">
 <div class="card"><h2>How it works</h2><ol class="how"><li>Send the form. It takes about 3 minutes.</li><li>We check it with your club or website.</li><li>Your show goes live with its own page, map and calendar button. We email you the link.</li><li>About 30 days before the show we ask one question: still on? One tap.</li></ol></div>
 <div class="card"><h2>Already listed?</h2><p>Open your show's page and press <strong>Update this show</strong>. The form opens with your details filled in.</p><a class="btn btn-ghost btn-sm" href="${h('states/')}">Find your show</a></div>
-<div class="card"><h2>Dealer list</h2><p>Send a PDF or spreadsheet of who's setting up. We post it on your show page, A to Z with table numbers.</p><a class="btn btn-ghost btn-sm" href="${esc(dealerListForm)}" target="_blank" rel="noopener">Send a dealer list</a></div>
+<div class="card"><h2>Dealer list</h2><p>Send a PDF or spreadsheet of who's setting up. We post it on your show page, A to Z with table numbers.</p>${SITE_UPLOAD ? `<a class="btn btn-ghost btn-sm" href="#upload">Send a dealer list</a>` : `<a class="btn btn-ghost btn-sm" href="${esc(dealerListForm)}" target="_blank" rel="noopener">Send a dealer list</a>`}</div>
 </aside>
 </div>
+${uploadBlock(h)}
 <div class="two org-lower">
 <section class="block org-badge" id="badge" aria-labelledby="h-badge"><h2 id="h-badge">Put our badge on your club website</h2><p>Show your members where to find your dates. The badge links straight to your show's page.</p>
 <div class="badge-row"><img src="${h('assets/badge-dark.png')}" alt="Listed on ${esc(NAME)} badge, dark" width="260" height="64"><img src="${h('assets/badge-light.png')}" alt="Listed on ${esc(NAME)} badge, light" width="260" height="64"></div>
