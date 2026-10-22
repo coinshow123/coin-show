@@ -1,7 +1,11 @@
 {
+  "v": 2,
+  "sig": "2086818056,1515838350,692789467,1953105704,1318310128,1605406559,485406206,1147500317,1382470287,889777258,1490819738,1397515855,562792758,1987870427,834510696,1724328771,629456413,1334973476,1968827699,995028965,1484636593,821551416,292304152",
   "url": "https://docs.google.com/forms/d/e/1FAIpQLSfsn4fl7p_TmcpLLoy_CWLm72wcYgxufBoZvgcQmYNlNzKNmQ/viewform",
+  "post": "https://docs.google.com/forms/d/e/1FAIpQLSfsn4fl7p_TmcpLLoy_CWLm72wcYgxufBoZvgcQmYNlNzKNmQ/formResponse",
   "entries": {
     "show_id": "entry.1052973127",
+    "still_on": "entry.55817295",
     "show_name": "entry.1716016761",
     "start_date": "entry.1218785424",
     "end_date": "entry.971275953",
@@ -15,7 +19,40 @@
     "dealer_tables": "entry.1326682698",
     "website": "entry.1109527351",
     "specialties": "entry.245678445",
-    "organizer": "entry.1701914533"
+    "extras": "entry.620983262",
+    "dealers": "entry.865716897",
+    "organizer": "entry.1701914533",
+    "contact_name": "entry.1128561985",
+    "email": "entry.1753913190",
+    "contact_phone": "entry.1955621140",
+    "public_contact": "entry.616510757",
+    "authorized": "entry.1818310707"
   },
+  "choices": {
+    "still_on": [
+      "Yes, as listed",
+      "Yes, but some details changed",
+      "Postponed",
+      "Canceled"
+    ],
+    "public_contact": [
+      "Yes, show them on the show page",
+      "No, keep them private"
+    ],
+    "authorized": [
+      "I organize this show or am allowed to update it"
+    ]
+  },
+  "required": [
+    "still_on",
+    "show_name",
+    "start_date",
+    "city",
+    "state",
+    "contact_name",
+    "email",
+    "public_contact",
+    "authorized"
+  ],
   "made": "2026-10-16"
 }
