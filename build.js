@@ -1022,7 +1022,7 @@ ${fld('state', 'State', { req: 1, html: `<select id="f-state" name="state" requi
 ${fld('zip', 'ZIP code', { attrs: 'inputmode="numeric" maxlength="5" autocomplete="postal-code"' })}
 </div></fieldset>
 <fieldset class="sec"><legend>For collectors</legend><div class="fgrid">
-${fld('website', 'Show or club website', { wide: 1, type: 'url', hint: 'Or your Facebook page', attrs: 'placeholder="https://"' })}
+${fld('website', 'Show or club website', { wide: 1, hint: 'Or your Facebook page', attrs: 'inputmode="url" autocomplete="url" placeholder="yourclub.org"' })}
 ${fld('specialties', 'What will be for sale?', { wide: 1, hint: 'Like U.S. coins, paper money, world coins, bullion' })}
 ${fld('extras', 'Anything else at the show?', { wide: 1, hint: 'Auction, free appraisals, grading, kids table, door prizes, free parking...', html: '<textarea id="f-extras" name="extras" rows="3" aria-describedby="h-extras"></textarea>' })}
 </div></fieldset>
@@ -1044,8 +1044,17 @@ ${fld('contact_phone', 'Your phone', { type: 'tel', attrs: 'autocomplete="tel"' 
     : `<div class="callout"><p>Email your show details to <strong class="sel">${esc(config.contactEmail)}</strong> and we'll add it.</p></div>`;
   const dealerListForm = UPLOAD_FORM && UPLOAD_FORM.url ? UPLOAD_FORM.url + (UPLOAD_FORM.entries && UPLOAD_FORM.entries.kind && UPLOAD_FORM.kinds ? '?usp=pp_url&' + UPLOAD_FORM.entries.kind + '=' + encodeURIComponent(UPLOAD_FORM.kinds.list) : '') : `mailto:${config.contactEmail}?subject=${encodeURIComponent('Dealer list for my show')}`;
   const badgeCode = `<a href="${SITE}/"><img src="${SITE}/assets/badge-dark.png" alt="Listed on ${NAME}" width="260" height="64"></a>`;
+  const orgRows = upcoming.filter(x => x.showId).map(x => [x.name, fmt(x).date, x.city, x.st, STATES[x.st] || '', x.venue || '', updateLink(x, p => ''), uploadLink(x, 'list', p => ''), uploadLink(x, 'application', p => ''), x.cancelled ? 1 : 0]);
+  fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
+  fs.writeFileSync(path.join(OUT, 'assets', 'org-shows.json'), JSON.stringify(orgRows));
+  const finder = h => `<section class="find-show card" id="find" aria-labelledby="h-find"><h2 id="h-find">Already listed? Find your show</h2>
+<p class="muted">Update the details or send your dealer list. Type part of your show's name, or the city.</p>
+<label class="near-label" for="find-q">Search shows</label>
+<input type="search" id="find-q" placeholder="Like Kent Valley, or Sacramento" autocomplete="off" data-src="${h('assets/org-shows.json')}?v=${DATA_V}">
+<p class="small muted" id="find-count" aria-live="polite"></p>
+<ul class="find-list" id="find-results"></ul></section>`;
   const uploadBlock = h => SITE_UPLOAD ? `<section class="block up-block" id="upload" aria-labelledby="h-upload"><h2 id="h-upload">Send a dealer list or dealer application</h2>
-<div class="up-none card"><p>Open your show's page and press <strong>Upload dealer list</strong> or <strong>Upload dealer application</strong>. This form opens here with your show filled in.</p><a class="btn btn-ghost btn-sm" href="${h('states/')}">Find your show</a></div>
+<div class="up-none card"><p>First find your show, then press <strong>Dealer list</strong> or <strong>Dealer application</strong>. This form opens with your show filled in.</p><a class="btn btn-ghost btn-sm" href="#find">Find your show</a></div>
 <form class="sub-form up-form" id="upload-form" novalidate hidden data-post="${esc(SITE_UPLOAD.post)}" data-max="${Number(SITE_UPLOAD.maxMB) || 10}">
 <input type="hidden" name="show_id" id="up-show_id">
 <div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="company_site" tabindex="-1" autocomplete="off"></label></div>
@@ -1069,11 +1078,11 @@ ${fld('up_email', 'Your email', { req: 1, type: 'email', attrs: 'autocomplete="e
   page({ p: 'submit/', active: 'submit', title: `List Your Coin Show Free | ${NAME}`,
     desc: `Coin clubs and show promoters: list or update your coin show free on ${NAME}, post your dealer list, and add our badge to your website.`,
     body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › List your show</p><h1 id="sub-h1">List your coin show free</h1><p class="lede" id="sub-lede">Tell collectors when and where your show is. They find it by ZIP code, state and date.</p></div>
+${finder(h)}
 <div class="two">
 <section class="block" id="form" aria-labelledby="sub-h1">${(ownForm || iframeForm).replace('__SUBMIT__', h('submit/'))}</section>
 <aside class="stack">
 <div class="card"><h2>How it works</h2><ol class="how"><li>Send the form. It takes about 3 minutes.</li><li>We check it with your club or website.</li><li>Your show goes live with its own page, map and calendar button. We email you the link.</li><li>About 30 days before the show we ask one question: still on? One tap.</li></ol></div>
-<div class="card"><h2>Already listed?</h2><p>Open your show's page and press <strong>Update this show</strong>. The form opens with your details filled in.</p><a class="btn btn-ghost btn-sm" href="${h('states/')}">Find your show</a></div>
 <div class="card"><h2>Dealer list</h2><p>Send a PDF or spreadsheet of who's setting up. We post it on your show page, A to Z with table numbers.</p>${SITE_UPLOAD ? `<a class="btn btn-ghost btn-sm" href="#upload">Send a dealer list</a>` : `<a class="btn btn-ghost btn-sm" href="${esc(dealerListForm)}" target="_blank" rel="noopener">Send a dealer list</a>`}</div>
 </aside>
 </div>
@@ -1091,6 +1100,50 @@ ${uploadBlock(h)}
 <dt>How do I cancel a show?</dt><dd>Use <strong>Update this show</strong> and choose Cancelled. Collectors who saved it see that it's off.</dd>
 <dt>Something else?</dt><dd>Email <a href="mailto:${esc(config.contactEmail)}">${esc(config.contactEmail)}</a>.</dd></dl></div></aside>
 </div>` });
+  // Dealer profile: claim or update, on the site. Sent to the Google Sheet's upload service for your approval.
+  if (SITE_UPLOAD) {
+    const GROUPS = ['ANA', 'PNG', 'PCDA', 'SPMC', 'CSNS', 'IAPN'];
+    page({ p: 'dealers/profile/', active: 'dealers', noindex: true, title: `Claim or Update Your Dealer Profile | ${NAME}`,
+      desc: `Coin dealers: claim your free ${NAME} profile. Add your specialties, website and logo, and get the Verified tick.`,
+      body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('dealers/')}">Dealers</a> › <span id="dp-crumb">Your profile</span></p><h1 id="dp-h1">Claim your dealer profile</h1><p class="lede" id="dp-lede">Free. Add your specialties, website and logo. Once we confirm it's your business, your page gets the green Verified tick.</p></div>
+<div class="two">
+<section class="block" id="form">
+<div class="up-none card" id="dp-none"><p>Open your page on the Dealers list and press <strong>Claim this profile</strong>. This form opens with your business filled in.</p><a class="btn btn-ghost btn-sm" href="${h('dealers/')}">Find your business</a></div>
+<form class="sub-form" id="dealer-form" novalidate hidden data-post="${esc(SITE_UPLOAD.post)}">
+<input type="hidden" name="key" id="dp-key">
+<div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="company_site" tabindex="-1" autocomplete="off"></label></div>
+<p class="up-show">Profile for <strong id="dp-name"></strong></p>
+<fieldset class="sec"><legend>About you</legend><p class="muted small sec-note">Kept private. We use it only to confirm it's your business.</p><div class="fgrid">
+${fld('contact_name', 'Your name', { req: 1, attrs: 'autocomplete="name"' })}
+${fld('contact_role', 'Your role', { hint: 'Like Owner or Manager' })}
+${fld('contact_email', 'Your email', { req: 1, type: 'email', attrs: 'autocomplete="email"' })}
+${fld('contact_phone', 'Best phone to reach you', { type: 'tel', attrs: 'autocomplete="tel"', hint: 'We may call once to confirm' })}
+</div></fieldset>
+<fieldset class="sec"><legend>What collectors see</legend>
+<div class="choices"><p class="q">What do you specialize in?</p><div class="check-grid">${SPECIALTIES.map(x => `<label><input type="checkbox" name="specialties" value="${esc(x)}"> <span>${esc(x)}</span></label>`).join('')}</div></div>
+<div class="choices"><p class="q">Member of <span class="opt">(optional)</span></p><div class="check-grid">${GROUPS.map(x => `<label><input type="checkbox" name="groups" value="${x}"> <span>${x}</span></label>`).join('')}</div></div>
+<div class="fgrid">
+${fld('groups_other', 'Other memberships', { wide: 1, hint: 'Like your state association or local coin club' })}
+${fld('website', 'Website', { attrs: 'inputmode="url" autocomplete="url" placeholder="yourshop.com"' })}
+${fld('store', 'Online store', { hint: 'Like your eBay store', attrs: 'inputmode="url" placeholder="ebay.com/str/yourshop"' })}
+${fld('phone', 'Phone for collectors', { type: 'tel', hint: 'Shown on your page' })}
+${fld('public_email', 'Email for collectors', { type: 'email', hint: 'Shown on your page' })}
+</div></fieldset>
+<fieldset class="sec"><legend>Your logo <span class="opt">(optional)</span></legend>
+<div class="fld"><label for="dp-logo">Choose a picture</label><input type="file" id="dp-logo" name="logo" accept=".png,.jpg,.jpeg,.webp" aria-describedby="dp-logo-hint"><span class="hint" id="dp-logo-hint">PNG or JPG, up to 2 MB. A square picture looks best.</span></div>
+${fld('message', 'Anything else we should know?', { wide: 1, html: '<textarea id="f-message" name="message" rows="3"></textarea>' })}
+</fieldset>
+<label class="agree"><input type="checkbox" name="authorized" required> <span>This is my business, or I'm allowed to update its profile</span></label>
+<p class="form-err" role="alert" hidden></p>
+<button class="btn btn-primary btn-big" type="submit"><span>Send my profile</span></button>
+<p class="muted small">Free. We check every profile, usually within two business days.</p>
+</form>
+<div class="sub-done card" id="dp-done" hidden tabindex="-1"><h2>Thank you!</h2><p>We got your profile. We confirm it's your business, usually within two business days, then your page shows your details and the green Verified tick.</p><p><a class="btn btn-ghost btn-sm" id="dp-back" href="${h('dealers/')}">Back to your page</a></p></div>
+</section>
+<aside class="stack"><div class="card"><h2>Why claim it?</h2><ul class="how"><li>The green ${vTick('vtick-sm')} Verified tick on your page.</li><li>Your specialties, so collectors know what you carry.</li><li>Website, phone and online store buttons.</li><li>Your logo instead of your initials.</li></ul></div>
+<div class="card"><h2>Where your shows come from</h2><p>Your shows and table numbers come from the show organizers' dealer lists. To add a show, ask the organizer to send us their list.</p></div></aside>
+</div>` });
+  }
   // the old "For organizers" address now opens this page
   fs.mkdirSync(path.join(OUT, 'for-organizers'), { recursive: true });
   fs.writeFileSync(path.join(OUT, 'for-organizers', 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>List your coin show</title><meta name="robots" content="noindex"><link rel="canonical" href="${SITE}/submit/"><meta http-equiv="refresh" content="0; url=../submit/"></head><body><p><a href="../submit/">List your coin show</a></p><script>location.replace('../submit/'+location.search+location.hash)</script></body></html>`);
@@ -1140,7 +1193,7 @@ ${uploadBlock(h)}
         ].filter(Boolean);
         const later = e.stops.slice(1);
         return `<div class="sf-page"><div class="page-head sf-crumb"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('dealers/')}">Dealers</a> › ${esc(e.name)}</p></div>
-<section class="sf-hero${contacts.length || !e.verified ? '' : ' sf-noside'}" aria-label="${esc(e.name)}">
+<section class="sf-hero${(contacts.length || !e.verified || SITE_UPLOAD) ? '' : ' sf-noside'}" aria-label="${esc(e.name)}">
 <div class="sf-id">
 ${e.logo ? `<img class="sf-logo" src="${h('dealer-logos/' + e.logo)}" alt="${esc(e.name)} logo" width="112" height="112">` : `<div class="sf-logo sf-initials" aria-hidden="true">${esc(initials)}</div>`}
 <div class="sf-text">
@@ -1149,7 +1202,7 @@ ${e.logo ? `<img class="sf-logo" src="${h('dealer-logos/' + e.logo)}" alt="${esc
 ${e.specs.length || e.groups.length ? `<ul class="sf-chips">${e.specs.map(x => `<li>${esc(x)}</li>`).join('')}${e.groups.map(x => `<li class="sf-group">${esc(x)}</li>`).join('')}</ul>` : ''}
 </div>
 </div>
-${contacts.length || !e.verified ? `<div class="sf-side">${contacts.length ? `<div class="sf-contact">${contacts.join('')}</div>` : ''}${e.verified ? '' : `<div class="sf-claim"><p><strong>Is this your business?</strong> Claim this profile free. Add your logo, specialties and website, and get the green ${vTick('vtick-sm')} Verified tick.</p><a class="btn btn-gold" href="${esc(dealerClaimLink(e))}" target="_blank" rel="noopener">Claim this profile</a></div>`}</div>` : ''}
+${(contacts.length || !e.verified || SITE_UPLOAD) ? `<div class="sf-side">${contacts.length ? `<div class="sf-contact">${contacts.join('')}</div>` : ''}${e.verified ? '' : `<div class="sf-claim"><p><strong>Is this your business?</strong> Claim this profile free. Add your logo, specialties and website, and get the green ${vTick('vtick-sm')} Verified tick.</p><a class="btn btn-gold" href="${esc(dealerClaimLink(e, h))}"${SITE_UPLOAD ? '' : ' target="_blank" rel="noopener"'}>Claim this profile</a></div>`}${e.verified && SITE_UPLOAD ? `<p class="sf-update"><a href="${esc(dealerClaimLink(e, h))}">Your business? Update this profile</a></p>` : ''}</div>` : ''}
 </section>
 <div class="sf-body${about.length ? '' : ' sf-single'}">
 <section class="sf-meet" aria-labelledby="h-meet">
@@ -1264,7 +1317,12 @@ function dealerIcs(e) {
   return ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${NAME}//EN`, 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     `X-WR-CALNAME:${x(e.name + ' coin shows')}`, 'REFRESH-INTERVAL;VALUE=DURATION:P1D', 'X-PUBLISHED-TTL:P1D', ...ev, 'END:VCALENDAR', ''].join('\r\n');
 }
-function dealerClaimLink(e) {
+function dealerClaimLink(e, h) {
+  if (SITE_UPLOAD && h) {
+    const q = [['key', e.key], ['name', e.name], ['specialties', (e.specs || []).join(', ')], ['memberships', (e.groups || []).join(', ')], ['website', e.website], ['store', e.store], ['phone', e.phone], ['public_email', e.email], ['v', e.verified ? '1' : '']]
+      .filter(([, v]) => v).map(([k, v]) => k + '=' + encodeURIComponent(v));
+    return h('dealers/profile/') + '?' + q.join('&');
+  }
   if (DEALER_CLAIM_FORM && DEALER_CLAIM_FORM.url && DEALER_CLAIM_FORM.entries) {
     const q = [['dealer_key', e.key], ['dealer_name', e.name]].filter(([k]) => DEALER_CLAIM_FORM.entries[k]).map(([k, v]) => DEALER_CLAIM_FORM.entries[k] + '=' + encodeURIComponent(v));
     return DEALER_CLAIM_FORM.url + '?usp=pp_url&' + q.join('&');
