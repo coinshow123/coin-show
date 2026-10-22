@@ -2,6 +2,18 @@
    20-per-page lists with filter chips, and "near me" (runs in the browser; the ZIP never leaves the device). */
 /* Tap counting with GoatCounter (only when the site owner has turned it on): directions, calendar,
    official website, share buttons and ZIP searches. No cookies; nothing that identifies the visitor. */
+/* Page numbers to show: a window of 5 pages around the current one (3 on small phones), plus the first and last page.
+   Page 1 of 21: 1 2 3 4 5 … 21. Page 10: 1 … 8 9 10 11 12 … 21. Page 21: 1 … 17 18 19 20 21. */
+function pageNums(page, pages) {
+  var size = window.matchMedia && window.matchMedia('(max-width: 480px)').matches ? 3 : 5;
+  var start = Math.max(1, Math.min(page - Math.floor(size / 2), pages - size + 1)), end = Math.min(pages, start + size - 1), out = [];
+  if (start > 1) out.push(1);
+  if (start > 2) out.push('gap');
+  for (var n = start; n <= end; n++) out.push(n);
+  if (end < pages - 1) out.push('gap');
+  if (end < pages) out.push(pages);
+  return out;
+}
 function countTap(name) {
   try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: name, title: location.pathname, event: true }); } catch (e) {}
 }
@@ -140,14 +152,15 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
           var info = document.createElement('span'); info.className = 'pg-info'; info.textContent = 'Page ' + page + ' of ' + pages; pager.appendChild(info);
           if (page < pages) pager.appendChild(btn('Next', 'pg-next', page + 1));
         } else if (pages > 1) {
-          if (page > 1) pager.appendChild(btn('Previous', 'pg-prev', page - 1));
-          for (var i = 1; i <= pages; i++) {
+          if (page > 1) { var pv = btn('‹ Prev', 'pg-prev', page - 1); pv.setAttribute('aria-label', 'Previous page'); pager.appendChild(pv); }
+          pageNums(page, pages).forEach(function (i) {
+            if (i === 'gap') { var g = document.createElement('span'); g.className = 'pg-gap'; g.setAttribute('aria-hidden', 'true'); g.textContent = '…'; pager.appendChild(g); return; }
             var b = btn(String(i), '', i);
             b.setAttribute('aria-label', 'Page ' + i);
             if (i === page) b.setAttribute('aria-current', 'page');
             pager.appendChild(b);
-          }
-          if (page < pages) pager.appendChild(btn('Next page', 'pg-next', page + 1));
+          });
+          if (page < pages) { var nx = btn('Next ›', 'pg-next', page + 1); nx.setAttribute('aria-label', 'Next page'); pager.appendChild(nx); }
         }
       }
       if (scroll && section) section.scrollIntoView({ block: 'start' });
@@ -447,11 +460,8 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
       [].forEach.call(list.children, function (li) { li.hidden = true; });
       left.forEach(function (li, i) { li.hidden = i < (page - 1) * per || i >= page * per; });
       if (left.length <= per) { nav.hidden = true; nav.innerHTML = ''; return; }
-      var nums = [], add = function (n) { if (nums.indexOf(n) === -1 && n >= 1 && n <= pages) nums.push(n); };
-      add(1); for (var n = page - 1; n <= page + 1; n++) add(n); add(pages);
-      nums.sort(function (a, b) { return a - b; });
       var html = page > 1 ? btn('‹ Prev', page - 1, false, 'Previous page') : '';
-      nums.forEach(function (n, i) { if (i && n - nums[i - 1] > 1) html += '<span class="pg-gap">…</span>'; html += btn(n, n, n === page, 'Page ' + n); });
+      pageNums(page, pages).forEach(function (n) { html += n === 'gap' ? '<span class="pg-gap" aria-hidden="true">…</span>' : btn(n, n, n === page, 'Page ' + n); });
       if (page < pages) html += btn('Next ›', page + 1, false, 'Next page');
       var from = (page - 1) * per + 1, to = Math.min(page * per, left.length);
       nav.classList.add('pager-list');
