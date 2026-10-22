@@ -615,3 +615,60 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
     form.hidden = true; d.hidden = false; d.focus(); d.scrollIntoView({ block: 'start' });
   }
 })();
+
+/* "Send a dealer list or dealer application": opened from a show page's Upload button (?upload=list&up_show=ID&up_name=...).
+   Sends the file to the Google Sheet's upload service, which saves it in Google Drive for review. */
+(function () {
+  var form = document.getElementById('upload-form');
+  if (!form) return;
+  var params = new URLSearchParams(location.search), id = params.get('up_show') || '';
+  if (!/^[A-Za-z0-9-]{3,80}$/.test(id)) return; // no show chosen: the page explains how to start from the show page
+  form.hidden = false;
+  document.querySelector('#upload .up-none').hidden = true;
+  document.getElementById('up-show_id').value = id;
+  document.getElementById('up-show-name').textContent = params.get('up_name') || id;
+  var maxMB = +form.getAttribute('data-max') || 10, file = document.getElementById('up-file'), hint = document.getElementById('up-file-hint');
+  var TYPES = { list: ['.pdf', '.xlsx', '.xls', '.csv'], application: ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'] };
+  var HINT = { list: 'PDF, Excel or CSV, up to ' + maxMB + ' MB', application: 'PDF, Word or a photo, up to ' + maxMB + ' MB' };
+  var kind = function () { return form.querySelector('[name="kind"]:checked').value; };
+  var setKind = function () { file.setAttribute('accept', TYPES[kind()].join(',')); hint.textContent = HINT[kind()]; };
+  if (params.get('upload') === 'application') form.querySelector('[name="kind"][value="application"]').checked = true;
+  setKind();
+  form.addEventListener('change', function (e) { if (e.target.name === 'kind') setKind(); var f = e.target.closest('.is-bad'); if (f) f.classList.remove('is-bad'); });
+  form.addEventListener('input', function (e) { var f = e.target.closest('.is-bad'); if (f && e.target.checkValidity()) f.classList.remove('is-bad'); });
+  var err = form.querySelector('.form-err'), btn = form.querySelector('button[type=submit]'), lab = btn.querySelector('span');
+  var fail = function (msg) { err.textContent = msg; err.hidden = false; btn.disabled = false; lab.textContent = 'Send file'; err.scrollIntoView({ block: 'center' }); };
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    err.hidden = true;
+    form.querySelectorAll('.is-bad').forEach(function (x) { x.classList.remove('is-bad'); });
+    var bad = Array.prototype.filter.call(form.querySelectorAll('[required]'), function (el) { return !el.checkValidity(); });
+    if (bad.length) {
+      bad.forEach(function (el) { var f = el.closest('.fld, .agree'); if (f) f.classList.add('is-bad'); });
+      return fail('Please fill in: ' + bad.map(function (el) { return el.type === 'checkbox' ? 'the confirmation box' : el.type === 'file' ? 'your file' : el.closest('.fld').querySelector('label').firstChild.textContent.trim(); }).join(', ') + '.');
+    }
+    var f = file.files[0], ext = (f.name.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+    if (TYPES[kind()].indexOf(ext) === -1) { file.closest('.fld').classList.add('is-bad'); return fail('That file type does not work here. Use ' + HINT[kind()].split(',  up')[0].replace(/, up to.*/, '') + '.'); }
+    if (f.size > maxMB * 1024 * 1024) { file.closest('.fld').classList.add('is-bad'); return fail('The file is larger than ' + maxMB + ' MB. Please send a smaller file, or email it to us.'); }
+    if (form.querySelector('[name="company_site"]').value) { return done(); }
+    btn.disabled = true; lab.textContent = 'Sending... please keep this page open';
+    var rd = new FileReader();
+    rd.onerror = function () { fail('Could not read that file. Please choose it again.'); };
+    rd.onload = function () {
+      var body = JSON.stringify({ kind: kind(), show_id: id, show_name: params.get('up_name') || '', name: document.getElementById('up-name').value.trim(), email: document.getElementById('up-email').value.trim(),
+        authorized: form.querySelector('[name="authorized"]').checked, filename: f.name, mime: f.type, data: String(rd.result).split(',')[1] || '' });
+      // text/plain keeps this a simple request the upload service can answer
+      fetch(form.getAttribute('data-post'), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (j && j.ok) done(); else fail((j && j.error) || 'It did not send. Please try again.'); })
+        .catch(function () { fail('It did not send. Check your internet connection and try again, or email the file to us.'); });
+      if (typeof countTap === 'function') countTap('upload-' + kind());
+    };
+    rd.readAsDataURL(f);
+  });
+  function done() {
+    var d = document.getElementById('up-done');
+    if (kind() === 'application') document.getElementById('up-done-text').textContent = 'We got your dealer application. We check it and add a Download button to your show page, usually within two business days.';
+    form.hidden = true; d.hidden = false; d.focus(); d.scrollIntoView({ block: 'start' });
+  }
+})();
