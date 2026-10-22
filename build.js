@@ -686,7 +686,7 @@ ${body(h)}
 <div><p class="foot-name">${brandHTML()}</p><p class="foot-tag">${esc(config.tagline || '')}</p><p>Show dates can change. Always confirm with the organizer before you travel.</p></div>
 <nav class="foot-nav" aria-label="Footer">
 <div><p class="foot-h">Find shows</p><a href="${h('') + '#all'}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a></div>
-<div><p class="foot-h">Dealers &amp; selling</p><a href="${h('dealers/')}">Dealers</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('submit/')}">List your show</a><a href="${h('for-organizers/')}">For organizers</a></div>
+<div><p class="foot-h">Dealers &amp; selling</p><a href="${h('dealers/')}">Dealers</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('submit/')}">List or update your show</a></div>
 <div><p class="foot-h">${esc(NAME)}</p><a href="${h('about/')}">About</a><a href="mailto:${esc(config.contactEmail)}">Contact us</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></div>
 </nav>
 </div>
@@ -723,7 +723,11 @@ const PREFILL = { show_id: s => s.showId, show_name: s => s.name, start_date: s 
   dealer_tables: s => s.tables, website: s => s.website, specialties: s => s.specialties.join(', '), dealer_application: s => s.dealerApp, organizer: s => s.organizer };
 /* Link to the "Update this show" form with this show's public details already filled in.
    Before the form exists, falls back to an email with the details. Never pre-fills private contact info. */
-function updateLink(s) {
+function updateLink(s, h) {
+  if (UPDATE_FORM && UPDATE_FORM.v === 2 && h) {
+    const q = Object.keys(PREFILL).filter(k => k !== 'dealer_application').map(k => { const v = PREFILL[k](s); return v ? k + '=' + encodeURIComponent(String(v)).slice(0, 600) : ''; }).filter(Boolean);
+    return h('submit/') + '?' + q.join('&') + '#form';
+  }
   if (UPDATE_FORM && UPDATE_FORM.url && UPDATE_FORM.entries) {
     const q = Object.entries(UPDATE_FORM.entries).map(([k, entry]) => {
       const v = PREFILL[k] ? PREFILL[k](s) : '';
@@ -954,7 +958,7 @@ ${s.dealerApp ? `<div class="dealer-app"><div><strong>Want a table at this show?
 
 <aside class="promoter-box" aria-labelledby="h-promo-${esc(s.slug)}"><div><span class="sp-k">For the organizer</span><h2 id="h-promo-${esc(s.slug)}">Run this show? Update it free.</h2>
 <p>Fix the date or hours, add your dealer list, upload your dealer application so dealers can download it, and choose whether to show your contact info here.</p></div>
-<div class="promo-btns"><a class="btn btn-gold" href="${esc(updateLink(s))}" target="_blank" rel="noopener">Update this show</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">${s.dealers.length ? 'Replace dealer list' : 'Upload dealer list'}</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">${s.dealerApp ? 'Replace dealer application' : 'Upload dealer application'}</a>${s.showId ? `<a class="btn btn-ghost" href="${h('for-organizers/')}?show=${encodeURIComponent(shortId(s))}#badge">Get a badge for your website</a>` : ''}</div></aside>
+<div class="promo-btns"><a class="btn btn-gold" href="${esc(updateLink(s, h))}"${UPDATE_FORM && UPDATE_FORM.v === 2 ? '' : ' target="_blank" rel="noopener"'}>Update this show</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'list'))}" target="_blank" rel="noopener">${s.dealers.length ? 'Replace dealer list' : 'Upload dealer list'}</a><a class="btn btn-ghost" href="${esc(uploadLink(s, 'application'))}" target="_blank" rel="noopener">${s.dealerApp ? 'Replace dealer application' : 'Upload dealer application'}</a>${s.showId ? `<a class="btn btn-ghost" href="${h('submit/')}?show=${encodeURIComponent(shortId(s))}#badge">Get a badge for your website</a>` : ''}</div></aside>
 
 <section class="block share" aria-labelledby="h-share"><div class="share-bar">
 <div><h2 id="h-share">Going? Bring a friend.</h2><p class="muted">Send this show to someone who collects.</p></div>
@@ -984,48 +988,86 @@ ${more.length ? `<section class="block" aria-labelledby="h-more"><h2 id="h-more"
     fs.writeFileSync(path.join(OUT, 'covers', s.slug + '.svg'), coverSVG(s));
   }
 
-  // Submit
-  const formUrl = config.submitFormUrl || (UPDATE_FORM && UPDATE_FORM.url) || '';
-  const form = formUrl
-    ? `<div class="form-embed"><iframe src="${esc(formUrl)}${formUrl.includes('?') ? '&' : '?'}embedded=true" title="Submit your coin show" loading="lazy"></iframe></div><p class="muted">Form not showing? <a href="${esc(formUrl)}" target="_blank" rel="noopener">Open the form in a new tab</a>. Already listed? Use the <strong>Update this show</strong> button on your show's page instead.</p>`
+  // List or update your show: one page for organizers. Our own form, in the site's design, that sends the
+  // answers into the Google "Update your coin show" form, so they land in the Sheet like before.
+  const FI = UPDATE_FORM && UPDATE_FORM.v === 2 && UPDATE_FORM.post && UPDATE_FORM.entries && UPDATE_FORM.entries.email ? UPDATE_FORM : null;
+  const googleUrl = config.submitFormUrl || (UPDATE_FORM && UPDATE_FORM.url) || '';
+  const stateOpts = Object.keys(STATES).sort((a, b) => STATES[a].localeCompare(STATES[b])).map(c => `<option value="${c}">${esc(STATES[c])}</option>`).join('');
+  const fld = (key, label, o = {}) => `<div class="fld${o.wide ? ' fld-wide' : ''}"><label for="f-${key}">${esc(label)}${o.req ? '' : ' <span class="opt">(optional)</span>'}</label>${o.html || `<input type="${o.type || 'text'}" id="f-${key}" name="${key}"${o.req ? ' required' : ''}${o.hint ? ` aria-describedby="h-${key}"` : ''}${o.attrs ? ' ' + o.attrs : ''}>`}${o.hint ? `<span class="hint" id="h-${key}">${esc(o.hint)}</span>` : ''}</div>`;
+  const ownForm = FI ? `<form class="sub-form" id="show-form" novalidate data-post="${esc(FI.post)}">
+<script type="application/json" id="form-info">${JSON.stringify({ entries: FI.entries, choices: FI.choices || {} }).replace(/</g, '\\u003c')}</script>
+<input type="hidden" name="show_id" id="f-show_id">
+<div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="company_site" tabindex="-1" autocomplete="off"></label></div>
+<fieldset class="sec" id="still-on-sec" hidden><legend>Is this show still happening?</legend>
+<div class="choices"><label><input type="radio" name="still_on" value="0"> <span>Yes, still on as listed</span></label><label><input type="radio" name="still_on" value="1"> <span>Yes, but some details changed</span></label><label><input type="radio" name="still_on" value="2"> <span>Postponed</span></label><label><input type="radio" name="still_on" value="3"> <span>Cancelled</span></label></div></fieldset>
+<fieldset class="sec"><legend>Your show</legend><div class="fgrid">
+${fld('show_name', 'Show name', { req: 1, wide: 1, attrs: 'autocomplete="off"' })}
+${fld('start_date', 'First day', { req: 1, type: 'date' })}
+${fld('end_date', 'Last day', { type: 'date', hint: 'Skip it for a one-day show' })}
+${fld('hours', 'Public hours', { hint: 'Like 9:00 AM - 3:00 PM. Different each day? Sat 9:00 AM - 5:00 PM, Sun 9:00 AM - 3:00 PM', wide: 1 })}
+${fld('admission', 'Admission', { hint: 'Like Free, or $5 (kids free)' })}
+${fld('dealer_tables', 'Number of dealer tables', { type: 'text', attrs: 'inputmode="numeric"' })}
+</div></fieldset>
+<fieldset class="sec" id="repeat-sec"><legend>Does this show repeat?</legend>
+<div class="choices"><label><input type="radio" name="repeat" value="0" checked> <span>No, one-time show</span></label><label><input type="radio" name="repeat" value="1"> <span>Yes, every month on the same week and day <span class="muted">(like every 2nd Sunday)</span></span></label><label><input type="radio" name="repeat" value="2"> <span>Yes, another schedule <span class="muted">(tell us below)</span></span></label></div>
+<div class="fld rep-count" hidden><label for="f-repeat_count">How many more dates should we add?</label><select id="f-repeat_count" name="repeat_count"><option>3</option><option selected>6</option><option>12</option></select><span class="hint" id="rep-dates"></span></div></fieldset>
+<fieldset class="sec"><legend>Where</legend><div class="fgrid">
+${fld('venue', 'Venue name', { req: 1, wide: 1, hint: 'Like American Legion Post 17' })}
+${fld('address', 'Street address', { wide: 1, attrs: 'autocomplete="street-address"' })}
+${fld('city', 'City', { req: 1 })}
+${fld('state', 'State', { req: 1, html: `<select id="f-state" name="state" required><option value="">Choose a state</option>${stateOpts}</select>` })}
+${fld('zip', 'ZIP code', { attrs: 'inputmode="numeric" maxlength="5" autocomplete="postal-code"' })}
+</div></fieldset>
+<fieldset class="sec"><legend>For collectors</legend><div class="fgrid">
+${fld('website', 'Show or club website', { wide: 1, type: 'url', hint: 'Or your Facebook page', attrs: 'placeholder="https://"' })}
+${fld('specialties', 'What will be for sale?', { wide: 1, hint: 'Like U.S. coins, paper money, world coins, bullion' })}
+${fld('extras', 'Anything else at the show?', { wide: 1, hint: 'Auction, free appraisals, grading, kids table, door prizes, free parking...', html: '<textarea id="f-extras" name="extras" rows="3" aria-describedby="h-extras"></textarea>' })}
+</div></fieldset>
+<fieldset class="sec"><legend>About you</legend><p class="muted small sec-note">Kept private. We use it only to confirm your show, unless you choose to show it below.</p><div class="fgrid">
+${fld('organizer', 'Club or promoter name', { wide: 1 })}
+${fld('contact_name', 'Your name', { req: 1, attrs: 'autocomplete="name"' })}
+${fld('email', 'Your email', { req: 1, type: 'email', attrs: 'autocomplete="email"' })}
+${fld('contact_phone', 'Your phone', { type: 'tel', attrs: 'autocomplete="tel"' })}
+</div>
+<div class="choices"><p class="q">Show your name, email and phone on this show's page?</p><label><input type="radio" name="public" value="1"> <span>Yes, collectors and dealers can contact me</span></label><label><input type="radio" name="public" value="0" checked> <span>No, keep them private</span></label></div>
+<label class="agree"><input type="checkbox" name="authorized" required> <span>I organize this show or am allowed to update it</span></label></fieldset>
+<p class="form-err" role="alert" hidden></p>
+<button class="btn btn-primary btn-big" type="submit"><span>Send my show</span></button>
+<p class="muted small">Free. We check every listing and usually publish it within two business days.</p>
+</form>
+<div class="sub-done card" id="sub-done" hidden tabindex="-1"><h2>Thank you!</h2><p>We got your show. We check every listing and usually publish it within two business days, then email you the link at <strong id="done-email"></strong>.</p><p><a class="btn btn-ghost btn-sm" href="__SUBMIT__">Send another show</a></p></div>` : '';
+  const iframeForm = googleUrl
+    ? `<div class="form-embed"><iframe src="${esc(googleUrl)}${googleUrl.includes('?') ? '&' : '?'}embedded=true" title="Submit your coin show" loading="lazy"></iframe></div><p class="muted">Form not showing? <a href="${esc(googleUrl)}" target="_blank" rel="noopener">Open the form in a new tab</a>.</p>`
     : `<div class="callout"><p>Email your show details to <strong class="sel">${esc(config.contactEmail)}</strong> and we'll add it.</p></div>`;
-  page({ p: 'submit/', active: 'submit', title: `List Your Coin Show Free | ${NAME}`,
-    desc: `Clubs and promoters: list your coin show free on ${NAME} so collectors near you can find it.`,
-    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › List your show</p><h1>List your coin show free</h1><p class="lede">Tell collectors when and where your show is. We check every listing and usually publish it within two business days.</p></div>
-<div class="two">
-<section class="block"><h2>Show details</h2>${form}</section>
-<aside class="stack">
-<div class="card"><h2>How it works</h2><ol><li>Fill out the form. It takes about 3 minutes.</li><li>We check the details with your club or website.</li><li>Your show goes live with its own page, map link and calendar button.</li></ol></div>
-<div class="card"><h2>What to have ready</h2><ul><li>Show name and dates</li><li>Venue name and street address</li><li>Public hours and admission</li><li>Number of dealer tables</li><li>Website or Facebook page</li><li>Dealer application link (optional)</li><li>Your name and email (private unless you choose to show them)</li></ul></div>
-${config.featuredPrice ? `<div class="card card-gold"><h2>Featured listing · ${esc(config.featuredPrice)}</h2><p>Top of your state's list for 30 days, a gold Featured badge, and a spot on the home page.</p><p>Email <strong class="sel">${esc(config.contactEmail)}</strong> to reserve.</p></div>` : ''}
-<div class="card"><h2>Organizer tools</h2><p>Update your show, send a dealer list, and get a badge for your club website.</p><a class="btn btn-ghost btn-sm" href="${h('for-organizers/')}">For organizers</a></div>
-</aside>
-</div>` });
-  // For organizers: everything a club or promoter can do, plus the website badge
   const dealerListForm = UPLOAD_FORM && UPLOAD_FORM.url ? UPLOAD_FORM.url + (UPLOAD_FORM.entries && UPLOAD_FORM.entries.kind && UPLOAD_FORM.kinds ? '?usp=pp_url&' + UPLOAD_FORM.entries.kind + '=' + encodeURIComponent(UPLOAD_FORM.kinds.list) : '') : `mailto:${config.contactEmail}?subject=${encodeURIComponent('Dealer list for my show')}`;
   const badgeCode = `<a href="${SITE}/"><img src="${SITE}/assets/badge-dark.png" alt="Listed on ${NAME}" width="260" height="64"></a>`;
-  page({ p: 'for-organizers/', active: 'submit', title: `For Coin Show Organizers and Clubs | ${NAME}`,
-    desc: `Coin clubs and show promoters: list your show free, keep it up to date, post your dealer list, and add a ${NAME} badge to your website.`,
-    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › For organizers</p><h1>For show organizers and clubs</h1><p class="lede">List your coin show free, keep it up to date, and bring more collectors through the door.</p></div>
-<div class="org-steps">
-<div class="card"><span class="org-n" aria-hidden="true">1</span><h2>List your show free</h2><p>Dates, venue, hours and admission. It takes about 3 minutes. We check every listing and usually publish it within two business days. A show that repeats every month? Tell us once and we add the next dates.</p><a class="btn btn-primary btn-sm" href="${h('submit/')}">List your show</a></div>
-<div class="card"><span class="org-n" aria-hidden="true">2</span><h2>Keep it up to date</h2><p>Every show page has an <strong>Update this show</strong> button with your details already filled in. Once we know you, updates go live the same day.</p><a class="btn btn-ghost btn-sm" href="${h('states/')}">Find your show</a></div>
-<div class="card"><span class="org-n" aria-hidden="true">3</span><h2>Send your dealer list</h2><p>Collectors look up which dealers are coming. Send a PDF or spreadsheet and we post it on your show page, with each dealer and table number.</p><a class="btn btn-ghost btn-sm" href="${esc(dealerListForm)}" target="_blank" rel="noopener">Send a dealer list</a></div>
-<div class="card"><span class="org-n" aria-hidden="true">4</span><h2>Confirm before the show</h2><p>30 days before your show we email you one question: is it still on? One tap, and your page shows <strong>Details checked</strong> so collectors know they can trust the date.</p></div>
-</div>
+  page({ p: 'submit/', active: 'submit', title: `List Your Coin Show Free | ${NAME}`,
+    desc: `Coin clubs and show promoters: list or update your coin show free on ${NAME}, post your dealer list, and add our badge to your website.`,
+    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › List your show</p><h1 id="sub-h1">List your coin show free</h1><p class="lede" id="sub-lede">Tell collectors when and where your show is. They find it by ZIP code, state and date.</p></div>
 <div class="two">
+<section class="block" id="form" aria-labelledby="sub-h1">${(ownForm || iframeForm).replace('__SUBMIT__', h('submit/'))}</section>
+<aside class="stack">
+<div class="card"><h2>How it works</h2><ol class="how"><li>Send the form. It takes about 3 minutes.</li><li>We check it with your club or website.</li><li>Your show goes live with its own page, map and calendar button. We email you the link.</li><li>About 30 days before the show we ask one question: still on? One tap.</li></ol></div>
+<div class="card"><h2>Already listed?</h2><p>Open your show's page and press <strong>Update this show</strong>. The form opens with your details filled in.</p><a class="btn btn-ghost btn-sm" href="${h('states/')}">Find your show</a></div>
+<div class="card"><h2>Dealer list</h2><p>Send a PDF or spreadsheet of who's setting up. We post it on your show page, A to Z with table numbers.</p><a class="btn btn-ghost btn-sm" href="${esc(dealerListForm)}" target="_blank" rel="noopener">Send a dealer list</a></div>
+</aside>
+</div>
+<div class="two org-lower">
 <section class="block org-badge" id="badge" aria-labelledby="h-badge"><h2 id="h-badge">Put our badge on your club website</h2><p>Show your members where to find your dates. The badge links straight to your show's page.</p>
 <div class="badge-row"><img src="${h('assets/badge-dark.png')}" alt="Listed on ${esc(NAME)} badge, dark" width="260" height="64"><img src="${h('assets/badge-light.png')}" alt="Listed on ${esc(NAME)} badge, light" width="260" height="64"></div>
 <fieldset class="badge-pick"><legend>Badge color</legend><label><input type="radio" name="badge-color" value="dark" checked> Dark</label><label><input type="radio" name="badge-color" value="light"> Light</label></fieldset>
-<p class="small muted" id="badge-note">Copy this code and paste it into your website. To link the badge to your own show, use the <strong>Get a badge</strong> button on your show's page.</p>
+<p class="small muted" id="badge-note">Copy this code and paste it into your website. To link the badge to your own show, use <strong>Get a badge</strong> on your show's page.</p>
 <pre class="code" id="badge-code" data-site="${esc(SITE)}" data-name="${esc(NAME)}">${esc(badgeCode)}</pre>
 <button class="btn btn-ghost btn-sm" type="button" data-copy-from="badge-code"><span>Copy code</span></button></section>
 <aside class="stack org-aside"><div class="card"><h2>Questions</h2><dl class="faq">
 <dt>Is it really free?</dt><dd>Yes. Listing, updates, dealer lists and the badge are all free.</dd>
-<dt>Who sees my email?</dt><dd>Nobody, unless you choose to show it on your show page. We use it to confirm your show.</dd>
-<dt>How do I take my show down?</dt><dd>Use <strong>Update this show</strong> and choose Canceled. Collectors who saved it see that it's off.</dd>
+<dt>Who sees my email?</dt><dd>Nobody, unless you choose to show it on your show page.</dd>
+<dt>How do I cancel a show?</dt><dd>Use <strong>Update this show</strong> and choose Cancelled. Collectors who saved it see that it's off.</dd>
 <dt>Something else?</dt><dd>Email <a href="mailto:${esc(config.contactEmail)}">${esc(config.contactEmail)}</a>.</dd></dl></div></aside>
 </div>` });
+  // the old "For organizers" address now opens this page
+  fs.mkdirSync(path.join(OUT, 'for-organizers'), { recursive: true });
+  fs.writeFileSync(path.join(OUT, 'for-organizers', 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>List your coin show</title><meta name="robots" content="noindex"><link rel="canonical" href="${SITE}/submit/"><meta http-equiv="refresh" content="0; url=../submit/"></head><body><p><a href="../submit/">List your coin show</a></p><script>location.replace('../submit/'+location.search+location.hash)</script></body></html>`);
 
   // Sell your coins
   page({ p: 'sell-your-coins/', active: 'sell', title: `Selling a Coin Collection? How to Get a Fair Offer | ${NAME}`,
