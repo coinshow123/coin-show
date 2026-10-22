@@ -4,6 +4,9 @@
    official website, share buttons and ZIP searches. No cookies; nothing that identifies the visitor. */
 /* Page numbers to show: a window of 5 pages around the current one (3 on small phones), plus the first and last page.
    Page 1 of 21: 1 2 3 4 5 … 21. Page 10: 1 … 8 9 10 11 12 … 21. Page 21: 1 … 17 18 19 20 21. */
+function pgBtn(label, n, cur, aria) {
+  return '<button type="button" class="pg' + (cur ? ' on' : '') + '" data-pg="' + n + '"' + (cur ? ' aria-current="page"' : '') + (aria ? ' aria-label="' + aria + '"' : '') + '>' + label + '</button>';
+}
 function pageNums(page, pages) {
   var size = window.matchMedia && window.matchMedia('(max-width: 480px)').matches ? 3 : 5;
   var start = Math.max(1, Math.min(page - Math.floor(size / 2), pages - size + 1)), end = Math.min(pages, start + size - 1), out = [];
@@ -47,7 +50,6 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
   function link(p) { return ROOT + p + (PREVIEW && /\/$/.test(p) ? 'index.html' : ''); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
-  var phone = window.matchMedia('(max-width:760px)');
 
   /* ----- main menu (Menu button on tablets and phones; By state dropdown) ----- */
   var top = document.querySelector('.top');
@@ -146,31 +148,19 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
           : 'No ' + what[1] + ' listed' + what[2] + '.';
       }
       if (pager) {
-        pager.innerHTML = '';
-        if (pages > 1 && phone.matches) {
-          if (page > 1) pager.appendChild(btn('Previous', 'pg-prev', page - 1));
-          var info = document.createElement('span'); info.className = 'pg-info'; info.textContent = 'Page ' + page + ' of ' + pages; pager.appendChild(info);
-          if (page < pages) pager.appendChild(btn('Next', 'pg-next', page + 1));
-        } else if (pages > 1) {
-          if (page > 1) { var pv = btn('‹ Prev', 'pg-prev', page - 1); pv.setAttribute('aria-label', 'Previous page'); pager.appendChild(pv); }
-          pageNums(page, pages).forEach(function (i) {
-            if (i === 'gap') { var g = document.createElement('span'); g.className = 'pg-gap'; g.setAttribute('aria-hidden', 'true'); g.textContent = '…'; pager.appendChild(g); return; }
-            var b = btn(String(i), '', i);
-            b.setAttribute('aria-label', 'Page ' + i);
-            if (i === page) b.setAttribute('aria-current', 'page');
-            pager.appendChild(b);
-          });
-          if (page < pages) { var nx = btn('Next ›', 'pg-next', page + 1); nx.setAttribute('aria-label', 'Next page'); pager.appendChild(nx); }
+        // the same page bar as every other long list on the site: ‹ Prev 1 2 3 4 5 … 21 Next ›
+        pager.classList.add('pager-list');
+        if (pages < 2) pager.innerHTML = '';
+        else {
+          var html = page > 1 ? pgBtn('‹ Prev', page - 1, false, 'Previous page') : '';
+          pageNums(page, pages).forEach(function (n) { html += n === 'gap' ? '<span class="pg-gap" aria-hidden="true">…</span>' : pgBtn(n, n, n === page, 'Page ' + n); });
+          if (page < pages) html += pgBtn('Next ›', page + 1, false, 'Next page');
+          pager.innerHTML = '<div class="pg-row">' + html + '</div>';
         }
       }
       if (scroll && section) section.scrollIntoView({ block: 'start' });
     }
-    function btn(label, cls, target) {
-      var b = document.createElement('button');
-      b.type = 'button'; b.textContent = label; if (cls) b.className = cls;
-      b.addEventListener('click', function () { show(target, true); });
-      return b;
-    }
+    if (pager) pager.addEventListener('click', function (e) { var b = e.target.closest('[data-pg]'); if (b && !b.classList.contains('on')) show(parseInt(b.getAttribute('data-pg'), 10), true); });
     if (chips) {
       chips.addEventListener('click', function (e) {
         var c = e.target.closest('.fchip'); if (!c) return;
