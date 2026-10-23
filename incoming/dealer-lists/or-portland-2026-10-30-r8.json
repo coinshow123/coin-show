@@ -1,0 +1,559 @@
+{
+ "ok": true,
+ "file": "or-portland-2026-10-30-r8.pdf",
+ "read": "2026-10-23T23:16:41.257Z",
+ "count": 78,
+ "needsLook": 8,
+ "headerFound": false,
+ "dealers": [
+  {
+   "name": "21th Annual Fall Coin Show",
+   "table": "",
+   "city": "Portland",
+   "state": "OR",
+   "flag": "check table"
+  },
+  {
+   "name": "October 30-November 1",
+   "table": "2026",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Alphabetical list - posted Saturday, October 17, 2026.",
+   "table": "",
+   "city": "",
+   "state": "",
+   "flag": "check state and city, table"
+  },
+  {
+   "name": "Table #",
+   "table": "",
+   "city": "Firm Name Location",
+   "state": "",
+   "flag": "check state, table"
+  },
+  {
+   "name": "Ajpm",
+   "table": "92-94",
+   "city": "Portland",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Allen G. Berman",
+   "table": "76",
+   "city": "Fairfield",
+   "state": "CT",
+   "flag": ""
+  },
+  {
+   "name": "ANACS",
+   "table": "78",
+   "city": "Albany",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Aploz! Coins, LLC",
+   "table": "61-62",
+   "city": "Dupont",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Art McBride Rare Coins",
+   "table": "13-14",
+   "city": "Hillsboro",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Beaverton Coin & Currency",
+   "table": "59-60",
+   "city": "Beaverton",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Brent Davis",
+   "table": "86",
+   "city": "Kennewick",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Brian Herriott",
+   "table": "23",
+   "city": "Cincinnati",
+   "state": "OH",
+   "flag": ""
+  },
+  {
+   "name": "Cascadia Precious Metals",
+   "table": "96-98",
+   "city": "Beaverton",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Charmy Harker",
+   "table": "6",
+   "city": "Irvine",
+   "state": "CA",
+   "flag": ""
+  },
+  {
+   "name": "Coin Guy, The",
+   "table": "130-131",
+   "city": "Pullman",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Coins & Auctions Since 1994",
+   "table": "127",
+   "city": "Vancouver",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Coins on the Blvd",
+   "table": "79-81",
+   "city": "Milwaukie",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Collectibles & Currency",
+   "table": "105",
+   "city": "Rancho Cordova",
+   "state": "CA",
+   "flag": ""
+  },
+  {
+   "name": "Cowlitz Coin",
+   "table": "89-91",
+   "city": "Longview",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Dan O'Keefe",
+   "table": "9",
+   "city": "Portland",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Daryl Anderson",
+   "table": "65",
+   "city": "Anacortes",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Dave Rethwisch",
+   "table": "44",
+   "city": "Portland",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "David Schmidt",
+   "table": "111",
+   "city": "Tacoma",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Denny Magden, Inc.",
+   "table": "99",
+   "city": "McMinnville",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "DJ's Coins",
+   "table": "47-49",
+   "city": "Coeur d'Alene",
+   "state": "ID",
+   "flag": ""
+  },
+  {
+   "name": "Doug Wahner",
+   "table": "124-125",
+   "city": "College Place",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Ed Rothberg",
+   "table": "71-72",
+   "city": "Moorhead",
+   "state": "MN",
+   "flag": ""
+  },
+  {
+   "name": "Eggimann's RC Inc.",
+   "table": "100",
+   "city": "Reedsport",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Evert \"Fred\" Twiss",
+   "table": "129",
+   "city": "Prineville",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Every Day Coin (EDC Plug)",
+   "table": "54",
+   "city": "Tualatin",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Fleetwood Inc.",
+   "table": "57-58",
+   "city": "Kent",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Gary Guernsey",
+   "table": "123",
+   "city": "Clinton",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Gold Baron, The",
+   "table": "108",
+   "city": "Longview",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Grunberg Schloss Collector's Cabinet",
+   "table": "66-69",
+   "city": "Sandpoint",
+   "state": "ID",
+   "flag": ""
+  },
+  {
+   "name": "Harry's Coin Shop",
+   "table": "121-122",
+   "city": "Beaverton",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Jack Tipping",
+   "table": "50",
+   "city": "Onalaska",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Jasper \"Jake\" Shell",
+   "table": "118-119",
+   "city": "Corvallis",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Jeff Shevlin",
+   "table": "116-117",
+   "city": "Carmichael",
+   "state": "CA",
+   "flag": ""
+  },
+  {
+   "name": "John Drummey",
+   "table": "39",
+   "city": "Seattle",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "John Howe",
+   "table": "40-41",
+   "city": "Silverdale",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Kasual Kollectibles",
+   "table": "42-43",
+   "city": "Federal Way",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Lacey Rare Coins",
+   "table": "30-31",
+   "city": "Lacey",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Liberty Coin & Currency",
+   "table": "101-104",
+   "city": "Vancouver",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Magpie Collectibles",
+   "table": "87-88",
+   "city": "Seattle",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Makes Cents",
+   "table": "55-56",
+   "city": "Garden City",
+   "state": "ID",
+   "flag": ""
+  },
+  {
+   "name": "Pacific Northwest Numismatic Association",
+   "table": "",
+   "city": "",
+   "state": "",
+   "flag": "check state and city, table"
+  },
+  {
+   "name": "21th Annual Fall Coin Show",
+   "table": "",
+   "city": "Portland",
+   "state": "OR",
+   "flag": "check table"
+  },
+  {
+   "name": "October 30-November 1",
+   "table": "2026",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Alphabetical list - posted Saturday, October 17, 2026.",
+   "table": "",
+   "city": "",
+   "state": "",
+   "flag": "check state and city, table"
+  },
+  {
+   "name": "Mark Nielsen",
+   "table": "84-85",
+   "city": "Bonney Lake",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Michael Bezayiff",
+   "table": "70",
+   "city": "Portland",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Monticello Rare Coins",
+   "table": "112-115",
+   "city": "University Place",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Multnomah Coins Inc.",
+   "table": "95",
+   "city": "Oregon City",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Nathan Markowitz",
+   "table": "25-26",
+   "city": "Springfield",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Nathan Upton",
+   "table": "3",
+   "city": "Corvallis",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Nova Online, Inc.",
+   "table": "32-34",
+   "city": "Tigard",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "NW Exonumia",
+   "table": "15",
+   "city": "Ocean Shores",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Pacifica Trading Company",
+   "table": "37-38",
+   "city": "Marina",
+   "state": "CA",
+   "flag": ""
+  },
+  {
+   "name": "Portland Mint",
+   "table": "16-17",
+   "city": "Vancouver",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Redmond Rare Coins",
+   "table": "106-107",
+   "city": "Kirkland",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Rendezvous C&S",
+   "table": "12",
+   "city": "Quilcene",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Rhesaena Numismatics",
+   "table": "77",
+   "city": "Bellevue",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Rick Hennessy",
+   "table": "10-11",
+   "city": "Beaverton",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Rick Hobson",
+   "table": "82-83",
+   "city": "Portland",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Robert White",
+   "table": "51-53",
+   "city": "Gresham",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Ryan Bonifer",
+   "table": "63",
+   "city": "Scappoose",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Scott and Lisa Loos World Coins",
+   "table": "73-75",
+   "city": "North Bend",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Scott Swearingen",
+   "table": "128",
+   "city": "Salem",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Seattle Coin Shop",
+   "table": "35-36",
+   "city": "Seattle",
+   "state": "WA",
+   "flag": ""
+  },
+  {
+   "name": "Select Rarities",
+   "table": "7-8",
+   "city": "San Diego",
+   "state": "CA",
+   "flag": ""
+  },
+  {
+   "name": "Stephen Album Rare Coins, Inc.",
+   "table": "24",
+   "city": "Santa Rosa",
+   "state": "CA",
+   "flag": ""
+  },
+  {
+   "name": "Steven Oakes",
+   "table": "109-110",
+   "city": "Portland",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Tipsico Coin LLC",
+   "table": "1-2",
+   "city": "Eagle",
+   "state": "ID",
+   "flag": ""
+  },
+  {
+   "name": "Treasurespotter Coins",
+   "table": "64",
+   "city": "Tigard",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Trophy Point Coins",
+   "table": "126",
+   "city": "West Linn",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "West Coast Coins",
+   "table": "18-22",
+   "city": "Toledo",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "West Coast Coins",
+   "table": "27-29",
+   "city": "Toledo",
+   "state": "OR",
+   "flag": ""
+  },
+  {
+   "name": "Westside Coins",
+   "table": "45-46",
+   "city": "Lake Oswego",
+   "state": "OR",
+   "flag": ""
+  }
+ ],
+ "skipped": [
+  "Pacific Northwest Numismatic Association"
+ ]
+}
