@@ -805,3 +805,94 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
     setTimeout(function () { document.getElementById('find-q').focus({ preventScroll: true }); }, 450);
   });
 })();
+
+/* All shows page (and the month pages): search + filters, grouped by month, 25 a page.
+   Filters live in the address (?state=CA&month=2026-12&size=major&weekend=1&free=1&q=...), so a link opens the same view. */
+(function () {
+  var table = document.querySelector('table[data-browse]');
+  if (!table) return;
+  var per = parseInt(table.getAttribute('data-browse'), 10) || 25, body = table.tBodies[0];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var pad = function (n) { return (n < 10 ? '0' : '') + n; }, iso = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  var now = new Date(); now.setHours(0, 0, 0, 0);
+  var today = iso(now), day = now.getDay(), fri = new Date(now); fri.setDate(now.getDate() + (day === 0 ? -2 : day === 6 ? -1 : 5 - day));
+  var sun = new Date(fri); sun.setDate(fri.getDate() + 2); var WK = [iso(fri), iso(sun)];
+  var rows = [].slice.call(body.rows).filter(function (r) { if (r.getAttribute('data-e') < today) { r.remove(); return false; } return true; });
+  var $ = function (id) { return document.getElementById(id); };
+  var q = $('b-q'), st = $('b-st'), mo = $('b-m'), count = $('b-count'), pager = $('b-pager'), empty = $('b-empty'), clear = $('b-clear');
+  var tog = {}; document.querySelectorAll('[data-tog]').forEach(function (b) { tog[b.getAttribute('data-tog')] = b; });
+  var page = 1;
+  var norm = function (t) { return String(t || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); };
+  // start from the address
+  var p = new URLSearchParams(location.search);
+  if (p.get('q')) q.value = p.get('q');
+  if (p.get('state') && st.querySelector('option[value="' + p.get('state').toUpperCase() + '"]')) st.value = p.get('state').toUpperCase();
+  if (mo && p.get('month') && mo.querySelector('option[value="' + p.get('month') + '"]')) mo.value = p.get('month');
+  (p.get('size') || '').split(',').forEach(function (k) { if (tog[k] && (k === 'major' || k === 'regional')) tog[k].setAttribute('aria-pressed', 'true'); });
+  ['weekend', 'free'].forEach(function (k) { if (p.get(k) === '1') tog[k].setAttribute('aria-pressed', 'true'); });
+  page = Math.max(1, parseInt(p.get('page'), 10) || 1);
+  function on(k) { return tog[k].getAttribute('aria-pressed') === 'true'; }
+  // National Show and Regional Show: on together = either kind
+  function sizes() { return ['major', 'regional'].filter(on); }
+  function filtered() {
+    var words = norm(q.value).split(' ').filter(Boolean), s = st.value, m = mo ? mo.value : '', t = sizes(), wk = on('weekend'), fr = on('free');
+    return rows.filter(function (r) {
+      if (s && r.getAttribute('data-st') !== s) return false;
+      if (m && r.getAttribute('data-m') !== m) return false;
+      if (t.length && t.indexOf(r.getAttribute('data-t')) === -1) return false;
+      if (wk && !(r.getAttribute('data-s') <= WK[1] && r.getAttribute('data-e') >= WK[0])) return false;
+      if (fr && r.getAttribute('data-free') !== '1') return false;
+      if (words.length) { var hay = ' ' + norm(r.getAttribute('data-q')); if (!words.every(function (w) { return hay.indexOf(' ' + w) > -1 || hay.indexOf(w) > -1; })) return false; }
+      return true;
+    });
+  }
+  function syncUrl() {
+    var u = new URLSearchParams();
+    if (q.value.trim()) u.set('q', q.value.trim());
+    if (st.value) u.set('state', st.value);
+    if (mo && mo.value) u.set('month', mo.value);
+    if (sizes().length) u.set('size', sizes().join(','));
+    if (on('weekend')) u.set('weekend', '1');
+    if (on('free')) u.set('free', '1');
+    if (page > 1) u.set('page', page);
+    var s = u.toString();
+    try { history.replaceState(null, '', location.pathname + (s ? '?' + s : '')); } catch (e) { }
+    clear.hidden = !s.replace(/(^|&)page=\d+/, '');
+  }
+  function draw(scroll) {
+    var list = filtered(), pages = Math.max(1, Math.ceil(list.length / per));
+    if (page > pages) page = pages;
+    body.querySelectorAll('tr.mo-head').forEach(function (x) { x.remove(); });
+    rows.forEach(function (r) { r.hidden = true; });
+    var shown = list.slice((page - 1) * per, page * per), perMonth = {}, last = '';
+    list.forEach(function (r) { var k = r.getAttribute('data-m'); perMonth[k] = (perMonth[k] || 0) + 1; });
+    shown.forEach(function (r) {
+      var k = r.getAttribute('data-m');
+      if (k !== last) {
+        var h = document.createElement('tr'); h.className = 'mo-head';
+        h.innerHTML = '<th colspan="3" scope="colgroup">' + MONTHS[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4) + ' <span>' + perMonth[k] + ' show' + (perMonth[k] === 1 ? '' : 's') + '</span></th>';
+        body.insertBefore(h, r); last = k;
+      }
+      r.hidden = false;
+    });
+    empty.hidden = list.length > 0;
+    count.textContent = list.length ? (list.length === rows.length ? rows.length + ' upcoming shows' : list.length + ' of ' + rows.length + ' shows match') + (pages > 1 ? ' · Showing ' + ((page - 1) * per + 1) + '–' + Math.min(page * per, list.length) : '') : 'No shows match.';
+    if (pages > 1) {
+      var html = page > 1 ? pgBtn('‹ Prev', page - 1, false, 'Previous page') : '';
+      pageNums(page, pages).forEach(function (n) { html += n === 'gap' ? '<span class="pg-gap" aria-hidden="true">…</span>' : pgBtn(n, n, n === page, 'Page ' + n); });
+      if (page < pages) html += pgBtn('Next ›', page + 1, false, 'Next page');
+      pager.innerHTML = '<div class="pg-row">' + html + '</div>'; pager.hidden = false;
+    } else { pager.innerHTML = ''; pager.hidden = true; }
+    syncUrl();
+    if (scroll) { var top = table.getBoundingClientRect().top + window.pageYOffset - 100; if (window.pageYOffset > top) window.scrollTo({ top: top, behavior: 'smooth' }); }
+  }
+  var wait = null;
+  q.addEventListener('input', function () { clearTimeout(wait); wait = setTimeout(function () { page = 1; draw(false); }, 150); });
+  [st, mo].forEach(function (el) { if (el) el.addEventListener('change', function () { page = 1; draw(false); }); });
+  Object.keys(tog).forEach(function (k) { tog[k].addEventListener('click', function () { tog[k].setAttribute('aria-pressed', on(k) ? 'false' : 'true'); page = 1; draw(false); }); });
+  var reset = function () { q.value = ''; st.value = ''; if (mo) mo.value = ''; Object.keys(tog).forEach(function (k) { tog[k].setAttribute('aria-pressed', 'false'); }); page = 1; draw(false); q.focus(); };
+  clear.addEventListener('click', reset);
+  document.querySelectorAll('[data-clear]').forEach(function (b) { b.addEventListener('click', reset); });
+  pager.addEventListener('click', function (e) { var b = e.target.closest('[data-pg]'); if (!b || b.classList.contains('on')) return; page = parseInt(b.getAttribute('data-pg'), 10); draw(true); });
+  draw(false);
+})();
