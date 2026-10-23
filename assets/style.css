@@ -737,3 +737,13 @@ tr.is-major .dtile .tm{color:var(--brass-dark)}
 @media (max-width:640px){.fs-btns .btn{flex:1 1 100%}}
 .find-show .find-list{padding-left:0;margin-left:0}
 .check-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+/* List your show: the two starting points */
+.find-k{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brass-dark);margin-bottom:4px}
+.find-show>p{margin:0 0 10px;color:var(--ink)}
+.find-can{list-style:none;padding:0;margin:0 0 16px;display:flex;flex-wrap:wrap;gap:8px}
+.find-can li{font-size:15px;font-weight:600;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+.form-head{margin:0 0 14px}.form-head h2{margin:0 0 4px;font-size:28px}.form-head p{margin:0}
+.find-show .find-can{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;list-style:none;padding-left:0;margin:0 0 16px}
+.find-show .find-can li{display:inline-block;width:auto;margin:0;line-height:1.3}
+.find-show .find-can li::before{content:none}
+.find-show h2{font-family:var(--serif);font-weight:700;font-size:28px;line-height:1.2}
