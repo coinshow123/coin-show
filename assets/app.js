@@ -539,11 +539,7 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
     document.getElementById('repeat-sec').hidden = true;
     document.getElementById('sub-h1').textContent = 'Update your coin show';
     document.getElementById('sub-lede').textContent = 'Your show\'s details are filled in. Change anything that\'s different, then press Send.';
-    var fk = document.getElementById('form-k'), fh = document.getElementById('form-h'), fl = document.getElementById('form-lede');
-    if (fk) fk.textContent = 'Already on the site';
-    if (fh) fh.textContent = 'Update ' + (params.get('show_name') || 'your show');
-    if (fl) fl.textContent = 'Change anything that\'s different. Leave the rest as it is.';
-    var fs = document.getElementById('find'); if (fs) fs.hidden = true;
+
     var so = { yes: 0, changed: 1, postponed: 2, cancelled: 3 }[params.get('still_on') || ''];
     if (so !== undefined) form.querySelector('[name="still_on"][value="' + so + '"]').checked = true;
     form.querySelector('button[type=submit] span').textContent = 'Send update';
@@ -770,4 +766,42 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
     rd.readAsDataURL(f);
   });
   function done() { var d = document.getElementById('dp-done'); form.hidden = true; d.hidden = false; d.focus(); d.scrollIntoView({ block: 'start' }); }
+})();
+
+
+/* List or update your show: two cards. "Start listing" opens the new-show form under them;
+   Update / Dealer list / Dealer application links open the matching form in the same place. */
+(function () {
+  var area = document.getElementById('form-area');
+  if (!area) return;
+  var strip = document.getElementById('how-strip'), dNew = document.getElementById('door-new'), dOld = document.getElementById('find');
+  var start = document.getElementById('start-new'), back = document.getElementById('form-back'), p = new URLSearchParams(location.search);
+  function setMode(m) {
+    area.hidden = !(m === 'new' || m === 'update');
+    if (strip) strip.hidden = !!m;
+    dNew.classList.toggle('picked', m === 'new'); dNew.classList.toggle('dim', m === 'update' || m === 'upload');
+    dOld.classList.toggle('picked', m === 'update' || m === 'upload'); dOld.classList.toggle('dim', m === 'new');
+  }
+  var mode = p.get('show_id') ? 'update' : p.get('up_show') ? 'upload' : /^#(form|new)$/.test(location.hash) ? 'new' : null;
+  setMode(mode);
+  if (mode === 'update') {
+    document.getElementById('form-h').textContent = 'Update ' + (p.get('show_name') || 'your show');
+    back.textContent = '← List a new show instead'; back.setAttribute('href', location.pathname);
+  }
+  if (mode) setTimeout(function () { var t = document.getElementById(mode === 'upload' ? 'upload' : 'form'); if (t) t.scrollIntoView({ block: 'start' }); }, 60);
+  start.addEventListener('click', function () {
+    setMode('new');
+    var f = document.getElementById('form');
+    f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    var first = document.getElementById('f-show_name') || f.querySelector('iframe');
+    setTimeout(function () { if (first) first.focus({ preventScroll: true }); }, 450);
+    if (typeof countTap === 'function') countTap('start-listing');
+  });
+  back.addEventListener('click', function (e) {
+    if (mode === 'update') return; // a real link: reloads the page for a new show
+    e.preventDefault();
+    setMode(null);
+    dOld.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(function () { document.getElementById('find-q').focus({ preventScroll: true }); }, 450);
+  });
 })();
