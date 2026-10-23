@@ -1047,14 +1047,14 @@ ${fld('contact_phone', 'Your phone', { type: 'tel', attrs: 'autocomplete="tel"' 
   const orgRows = upcoming.filter(x => x.showId).map(x => [x.name, fmt(x).date, x.city, x.st, STATES[x.st] || '', x.venue || '', updateLink(x, p => ''), uploadLink(x, 'list', p => ''), uploadLink(x, 'application', p => ''), x.cancelled ? 1 : 0]);
   fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
   fs.writeFileSync(path.join(OUT, 'assets', 'org-shows.json'), JSON.stringify(orgRows));
-  const finder = h => `<section class="find-show card" id="find" aria-labelledby="h-find"><h2 id="h-find">Already listed? Find your show</h2>
-<p class="muted">Update the details or send your dealer list. Type part of your show's name, or the city.</p>
-<label class="near-label" for="find-q">Search shows</label>
+  const finder = h => `<section class="find-show card" id="find" aria-labelledby="h-find"><span class="find-k">Already on the site?</span><h2 id="h-find">Update a show that's already listed</h2>
+<p>Find your show to change its details, mark it cancelled, or send your dealer list or dealer application.</p>
+<ul class="find-can"><li>New dates or hours</li><li>New venue or address</li><li>Cancelled or postponed</li><li>Dealer list</li><li>Dealer application</li></ul>
+<label class="near-label" for="find-q">Search by show name or city</label>
 <input type="search" id="find-q" placeholder="Like Kent Valley, or Sacramento" autocomplete="off" data-src="${h('assets/org-shows.json')}?v=${DATA_V}">
 <p class="small muted" id="find-count" aria-live="polite"></p>
 <ul class="find-list" id="find-results"></ul></section>`;
-  const uploadBlock = h => SITE_UPLOAD ? `<section class="block up-block" id="upload" aria-labelledby="h-upload"><h2 id="h-upload">Send a dealer list or dealer application</h2>
-<div class="up-none card"><p>First find your show, then press <strong>Dealer list</strong> or <strong>Dealer application</strong>. This form opens with your show filled in.</p><a class="btn btn-ghost btn-sm" href="#find">Find your show</a></div>
+  const uploadBlock = h => SITE_UPLOAD ? `<section class="block up-block" id="upload" aria-labelledby="h-upload" hidden><h2 id="h-upload">Send a dealer list or dealer application</h2>
 <form class="sub-form up-form" id="upload-form" novalidate hidden data-post="${esc(SITE_UPLOAD.post)}" data-max="${Number(SITE_UPLOAD.maxMB) || 10}">
 <input type="hidden" name="show_id" id="up-show_id">
 <div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="company_site" tabindex="-1" autocomplete="off"></label></div>
@@ -1080,10 +1080,9 @@ ${fld('up_email', 'Your email', { req: 1, type: 'email', attrs: 'autocomplete="e
     body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › List your show</p><h1 id="sub-h1">List your coin show free</h1><p class="lede" id="sub-lede">Tell collectors when and where your show is. They find it by ZIP code, state and date.</p></div>
 ${finder(h)}
 <div class="two">
-<section class="block" id="form" aria-labelledby="sub-h1">${(ownForm || iframeForm).replace('__SUBMIT__', h('submit/'))}</section>
+<section class="block" id="form" aria-labelledby="form-h"><div class="form-head"><span class="find-k" id="form-k">Not on the site yet?</span><h2 id="form-h">List a new coin show</h2><p class="muted" id="form-lede">Fill in the form below. It takes about 3 minutes, and listing is free.</p></div>${(ownForm || iframeForm).replace('__SUBMIT__', h('submit/'))}</section>
 <aside class="stack">
 <div class="card"><h2>How it works</h2><ol class="how"><li>Send the form. It takes about 3 minutes.</li><li>We check it with your club or website.</li><li>Your show goes live with its own page, map and calendar button. We email you the link.</li><li>About 30 days before the show we ask one question: still on? One tap.</li></ol></div>
-<div class="card"><h2>Dealer list</h2><p>Send a PDF or spreadsheet of who's setting up. We post it on your show page, A to Z with table numbers.</p>${SITE_UPLOAD ? `<a class="btn btn-ghost btn-sm" href="#upload">Send a dealer list</a>` : `<a class="btn btn-ghost btn-sm" href="${esc(dealerListForm)}" target="_blank" rel="noopener">Send a dealer list</a>`}</div>
 </aside>
 </div>
 ${uploadBlock(h)}
