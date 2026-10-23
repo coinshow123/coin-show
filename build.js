@@ -395,7 +395,7 @@ function dateTile(s) {
 }
 function showRow(s, h) {
   const f = fmt(s);
-  const badges = (s.cancelled ? '<span class="tag tag-cancel">Cancelled</span>' : '') + (s.featured && !s.cancelled ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '') + (s.tier === 'major' ? '<span class="tag tag-major">National</span>' : '') + (isFree(s) ? '<span class="tag tag-free">Free</span>' : '');
+  const badges = (s.cancelled ? '<span class="tag tag-cancel">Cancelled</span>' : '') + (s.featured && !s.cancelled ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '') + (s.tier === 'major' ? '<span class="tag tag-major">National</span>' : '') + (isFree(s) ? '<span class="tag tag-free">Free</span>' : '') + ((s.dealers && s.dealers.length) || s.dealerListFile ? '<span class="tag tag-dl">Dealer list</span>' : '');
   return `<tr data-s="${s.start}" data-e="${s.end}"${isFree(s) ? ' data-free="1"' : ''}${s.cancelled ? ' class="is-cancelled"' : s.tier === 'major' ? ' class="is-major"' : ''}>
 <td class="c-date"><span class="d">${esc(shortDate(s))}</span><span class="dow">${esc(f.dow)}</span>${dateTile(s)}</td>
 <td class="c-st">${s.st}</td>
@@ -669,7 +669,7 @@ ${config.goatcounter ? `<script data-goatcounter="https://${esc(config.goatcount
 <a class="logo" href="${h('')}" aria-label="${esc(NAME)} home">${LOGO(h)}<span>${brandHTML()}</span></a>
 <button type="button" class="nav-btn" aria-expanded="false" aria-controls="site-nav"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 6h16M3 11h16M3 16h16"/></svg><span>Menu</span></button>
 <nav class="nav" id="site-nav" aria-label="Main">
-${nav('all', h('') + '#all', 'All shows')}
+${nav('all', h('coin-shows/'), 'All shows')}
 ${nav('weekend', h('this-weekend/'), 'This weekend')}
 ${nav('major', h('major-coin-shows/'), 'Major shows')}
 ${(SITEDATA.dealerCount || 0) >= (config.dealersInMenuAt || 10) ? nav('dealers', h('dealers/'), 'Dealers') : ''}
@@ -687,7 +687,7 @@ ${body(h)}
 <div class="wrap foot-in">
 <div><p class="foot-name">${brandHTML()}</p><p class="foot-tag">${esc(config.tagline || '')}</p><p>Show dates can change. Always confirm with the organizer before you travel.</p></div>
 <nav class="foot-nav" aria-label="Footer">
-<div><p class="foot-h">Find shows</p><a href="${h('') + '#all'}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a></div>
+<div><p class="foot-h">Find shows</p><a href="${h('coin-shows/')}">All shows</a><a href="${h('this-weekend/')}">This weekend</a><a href="${h('major-coin-shows/')}">Major shows</a><a href="${h('states/')}">All states</a></div>
 <div><p class="foot-h">Dealers &amp; selling</p><a href="${h('dealers/')}">Dealers</a><a href="${h('sell-your-coins/')}">Sell your coins</a><a href="${h('submit/')}">List or update your show</a></div>
 <div><p class="foot-h">${esc(NAME)}</p><a href="${h('about/')}">About</a><a href="mailto:${esc(config.contactEmail)}">Contact us</a><a href="${h('privacy/')}">Privacy</a><a href="${h('terms/')}">Terms</a></div>
 </nav>
@@ -824,6 +824,52 @@ ${signupBox()}` });
     desc: `Dates and locations for the major national coin conventions: FUN, ANA World's Fair of Money, National Money Show, Central States, Baltimore, Long Beach and more.`,
     body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › Major shows</p><h1>Major coin shows</h1><p class="lede">The big national conventions, with hundreds of dealers and major auctions. Worth planning a trip around.</p></div>
 ${listSection(majors, h, { title: 'Upcoming national conventions', counts, empty: 'No major shows are listed right now.' })}` });
+
+  // All shows: one page with search, filters (state, month, size, this weekend, free), grouped by month, shareable links.
+  // Plus one page per month (coin-shows/december-2026/) for people who search "coin shows in December".
+  const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthKey = s => s.start.slice(0, 7);
+  const monthName = k => MONTH_FULL[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4);
+  const monthSlug = k => MONTH_FULL[+k.slice(5, 7) - 1].toLowerCase() + '-' + k.slice(0, 4);
+  const months = [...new Set(upcoming.map(monthKey))].sort();
+  const byMonth = Object.fromEntries(months.map(k => [k, upcoming.filter(x => monthKey(x) === k)]));
+  const browseRow = (x, h) => showRow(x, h).replace('<tr ', `<tr data-st="${x.st}" data-t="${x.tier}" data-m="${monthKey(x)}" data-q="${esc([x.name, x.city, STATES[x.st] || '', x.st, x.venue, x.organizer].filter(Boolean).join(' ').toLowerCase())}" `);
+  const browse = (list, h, o) => {
+    const st = Object.keys(STATES).filter(c => list.some(x => x.st === c)).sort((a, b) => STATES[a].localeCompare(STATES[b]));
+    const ms = [...new Set(list.map(monthKey))].sort();
+    return `<section class="block browse" id="browse" aria-labelledby="h-browse">
+<form class="browse-bar" id="browse-bar" role="search" onsubmit="return false">
+<label class="bb-q" for="b-q"><span>Search</span><input type="search" id="b-q" name="q" placeholder="Show name, city or club" autocomplete="off"></label>
+<label for="b-st"><span>State</span><select id="b-st" name="state"><option value="">All states</option>${st.map(c => `<option value="${c}">${esc(STATES[c])}</option>`).join('')}</select></label>
+${o.month ? '' : `<label for="b-m"><span>Month</span><select id="b-m" name="month"><option value="">Any month</option>${ms.map(k => `<option value="${k}">${monthName(k)}</option>`).join('')}</select></label>`}
+<div class="bb-toggles" role="group" aria-label="Show only"><button type="button" class="fchip" data-tog="major" aria-pressed="false">National Show</button><button type="button" class="fchip" data-tog="regional" aria-pressed="false">Regional Show</button><button type="button" class="fchip" data-tog="weekend" aria-pressed="false">This Weekend</button><button type="button" class="fchip" data-tog="free" aria-pressed="false">Free Admission</button><button type="button" class="bb-clear" id="b-clear" hidden>Clear filters</button></div>
+</form>
+<div class="block-head"><h2 id="h-browse" class="sr-only">${esc(o.title)}</h2><p class="muted" id="b-count" aria-live="polite">${list.length} upcoming show${list.length === 1 ? '' : 's'}</p></div>
+<div class="table-wrap"><table class="shows browse-table" id="browse-table" data-browse="25"${o.month ? ` data-month="${o.month}"` : ''}>
+<thead><tr><th scope="col" class="c-date">Date</th><th scope="col" class="c-st">State</th><th scope="col">Name of the coin show</th></tr></thead>
+<tbody>
+${list.map(x => browseRow(x, h)).join('\n')}
+</tbody></table></div>
+<p class="empty" id="b-empty" hidden>No shows match. Try another state or month, or <button type="button" class="linkish" data-clear>clear the filters</button>.</p>
+<nav class="pager pager-list" id="b-pager" aria-label="Pages of shows"></nav>
+</section>`;
+  };
+  const monthLinks = (h, cur) => `<nav class="month-links" aria-label="Coin shows by month"><h2>Coin shows by month</h2><ul>${months.map(k => `<li><a href="${h('coin-shows/' + monthSlug(k) + '/')}"${k === cur ? ' aria-current="page"' : ''}>${monthName(k)} <span>${byMonth[k].length}</span></a></li>`).join('')}</ul></nav>`;
+  page({ p: 'coin-shows/', active: 'all', title: `Upcoming Coin Shows ${years}: All ${upcoming.length} Shows | ${NAME}`,
+    desc: `All ${upcoming.length} upcoming coin, currency and bullion shows in ${Object.keys(counts).length} states. Search by name or city, or filter by state, month and show size.`,
+    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › All shows</p><h1>All upcoming coin shows</h1><p class="lede">${upcoming.length} coin, currency and bullion shows in ${Object.keys(counts).length} states, soonest first. Search, or narrow it down by state, month and type of show.</p></div>
+${browse(upcoming, h, { title: 'All upcoming coin shows' })}
+${monthLinks(h, '')}` });
+  months.forEach((k, i) => {
+    const list = byMonth[k], nStates = new Set(list.map(x => x.st)).size, big = list.filter(x => x.tier === 'major' && !x.cancelled);
+    const prev = months[i - 1], next = months[i + 1];
+    page({ p: 'coin-shows/' + monthSlug(k) + '/', active: 'all', title: `Coin Shows in ${monthName(k)}: ${list.length} Shows | ${NAME}`,
+      desc: `${list.length} coin shows in ${monthName(k)} across ${nStates} state${nStates === 1 ? '' : 's'}${big.length ? ', including ' + big.slice(0, 2).map(x => x.name).join(' and ') : ''}. Dates, cities, venues and hours.`,
+      body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › <a href="${h('coin-shows/')}">All shows</a> › ${monthName(k)}</p><h1>Coin shows in ${monthName(k)}</h1><p class="lede">${list.length} coin, currency and bullion show${list.length === 1 ? '' : 's'} in ${nStates} state${nStates === 1 ? '' : 's'}${big.length ? `, including ${big.map(x => `<a href="${h(x.path)}">${esc(x.name)}</a>`).join(big.length > 2 ? ', ' : ' and ')}` : ''}.</p>
+<p class="month-nav">${prev ? `<a class="btn btn-ghost btn-sm" href="${h('coin-shows/' + monthSlug(prev) + '/')}">‹ ${monthName(prev)}</a>` : ''}${next ? `<a class="btn btn-ghost btn-sm" href="${h('coin-shows/' + monthSlug(next) + '/')}">${monthName(next)} ›</a>` : ''}</p></div>
+${browse(list, h, { title: 'Coin shows in ' + monthName(k), month: k })}
+${monthLinks(h, k)}` });
+  });
 
   // All states
   page({ p: 'states/', active: 'states', title: `Coin Shows by State | ${NAME}`,
