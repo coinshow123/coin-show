@@ -833,13 +833,13 @@ ${listSection(majors, h, { title: 'Upcoming national conventions', counts, empty
   const monthSlug = k => MONTH_FULL[+k.slice(5, 7) - 1].toLowerCase() + '-' + k.slice(0, 4);
   const months = [...new Set(upcoming.map(monthKey))].sort();
   const byMonth = Object.fromEntries(months.map(k => [k, upcoming.filter(x => monthKey(x) === k)]));
-  const browseRow = (x, h) => showRow(x, h).replace('<tr ', `<tr data-st="${x.st}" data-t="${x.tier}" data-m="${monthKey(x)}" data-q="${esc([x.name, x.city, STATES[x.st] || '', x.st, x.venue, x.organizer].filter(Boolean).join(' ').toLowerCase())}" `);
+  const browseRow = (x, h) => showRow(x, h).replace('<tr ', `<tr data-st="${x.st}" data-t="${x.tier}" data-m="${monthKey(x)}" data-q="${esc(x.name.toLowerCase())}" `);
   const browse = (list, h, o) => {
     const st = Object.keys(STATES).filter(c => list.some(x => x.st === c)).sort((a, b) => STATES[a].localeCompare(STATES[b]));
     const ms = [...new Set(list.map(monthKey))].sort();
     return `<section class="block browse" id="browse" aria-labelledby="h-browse">
 <form class="browse-bar" id="browse-bar" role="search" onsubmit="return false">
-<label class="bb-q" for="b-q"><span>Search</span><input type="search" id="b-q" name="q" placeholder="Show name, city or club" autocomplete="off"></label>
+<label class="bb-q" for="b-q"><span>Search by show name</span><input type="search" id="b-q" name="q" placeholder="Like FUN, Kent Valley, Baltimore" autocomplete="off"></label>
 <label for="b-st"><span>State</span><select id="b-st" name="state"><option value="">All states</option>${st.map(c => `<option value="${c}">${esc(STATES[c])}</option>`).join('')}</select></label>
 ${o.month ? '' : `<label for="b-m"><span>Month</span><select id="b-m" name="month"><option value="">Any month</option>${ms.map(k => `<option value="${k}">${monthName(k)}</option>`).join('')}</select></label>`}
 <div class="bb-toggles" role="group" aria-label="Show only"><button type="button" class="fchip" data-tog="major" aria-pressed="false">National Show</button><button type="button" class="fchip" data-tog="regional" aria-pressed="false">Regional Show</button><button type="button" class="fchip" data-tog="weekend" aria-pressed="false">This Weekend</button><button type="button" class="fchip" data-tog="free" aria-pressed="false">Free Admission</button><button type="button" class="bb-clear" id="b-clear" hidden>Clear filters</button></div>
@@ -857,7 +857,7 @@ ${list.map(x => browseRow(x, h)).join('\n')}
   const monthLinks = (h, cur) => `<nav class="month-links" aria-label="Coin shows by month"><h2>Coin shows by month</h2><ul>${months.map(k => `<li><a href="${h('coin-shows/' + monthSlug(k) + '/')}"${k === cur ? ' aria-current="page"' : ''}>${monthName(k)} <span>${byMonth[k].length}</span></a></li>`).join('')}</ul></nav>`;
   page({ p: 'coin-shows/', active: 'all', title: `Upcoming Coin Shows ${years}: All ${upcoming.length} Shows | ${NAME}`,
     desc: `All ${upcoming.length} upcoming coin, currency and bullion shows in ${Object.keys(counts).length} states. Search by name or city, or filter by state, month and show size.`,
-    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › All shows</p><h1>All upcoming coin shows</h1><p class="lede">${upcoming.length} coin, currency and bullion shows in ${Object.keys(counts).length} states, soonest first. Search, or narrow it down by state, month and type of show.</p></div>
+    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › All shows</p><h1>All upcoming coin shows</h1><p class="lede">${upcoming.length} coin, currency and bullion shows in ${Object.keys(counts).length} states, soonest first. Search by show name, or narrow it down by state, month and type of show.</p></div>
 ${browse(upcoming, h, { title: 'All upcoming coin shows' })}
 ${monthLinks(h, '')}` });
   months.forEach((k, i) => {
