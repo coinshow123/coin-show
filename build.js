@@ -839,7 +839,7 @@ ${listSection(majors, h, { title: 'Upcoming national conventions', counts, empty
     const ms = [...new Set(list.map(monthKey))].sort();
     return `<section class="block browse" id="browse" aria-labelledby="h-browse">
 <form class="browse-bar" id="browse-bar" role="search" onsubmit="return false">
-<label class="bb-q" for="b-q"><span>Search by show name</span><input type="search" id="b-q" name="q" placeholder="Like FUN, Kent Valley, Baltimore" autocomplete="off"></label>
+<label class="bb-q" for="b-q"><span>Search by show name</span><input type="search" id="b-q" name="q" placeholder="Show name" autocomplete="off" aria-describedby="b-q-ex"><small class="bb-ex" id="b-q-ex">Example: FUN, Central States, Long Beach…</small></label>
 <label for="b-st"><span>State</span><select id="b-st" name="state"><option value="">All states</option>${st.map(c => `<option value="${c}">${esc(STATES[c])}</option>`).join('')}</select></label>
 ${o.month ? '' : `<label for="b-m"><span>Month</span><select id="b-m" name="month"><option value="">Any month</option>${ms.map(k => `<option value="${k}">${monthName(k)}</option>`).join('')}</select></label>`}
 <div class="bb-toggles" role="group" aria-label="Show only"><button type="button" class="fchip" data-tog="major" aria-pressed="false">National Show</button><button type="button" class="fchip" data-tog="regional" aria-pressed="false">Regional Show</button><button type="button" class="fchip" data-tog="weekend" aria-pressed="false">This Weekend</button><button type="button" class="fchip" data-tog="free" aria-pressed="false">Free Admission</button><button type="button" class="bb-clear" id="b-clear" hidden>Clear filters</button></div>
