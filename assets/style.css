@@ -810,3 +810,16 @@ tr.mo-head th span{font-family:var(--sans);font-size:15px;font-weight:600;color:
   .shows tr.mo-head{display:block;background:none!important;border:0;border-radius:0;padding:0;margin:18px 0 8px;box-shadow:none}
   .shows tr.mo-head th{display:block;background:none;border:0;border-bottom:2px solid var(--ink);padding:0 0 6px;font-size:22px}
 }
+.bb-ex{font-size:14px;font-weight:400;color:var(--muted)}
+.browse-bar{align-items:start}
+/* All shows: look B (brass) */
+.browse-bar{background:var(--brass-tint);border:2px solid var(--brass);border-radius:14px;padding:20px 22px}
+.browse-bar .fchip{background:#fff;border-color:#D9C48E}
+.browse-bar .fchip:hover{border-color:var(--wine);color:var(--wine)}
+.browse-bar .fchip[aria-pressed=true]{background:var(--wine);border-color:var(--wine);color:#fff}
+.browse-table tr.mo-head th{background:var(--brass-tint)!important;border-top:3px solid var(--brass);color:var(--ink)!important}
+.browse-table tr.mo-head th span{color:var(--brass-dark)}
+@media (max-width:760px){
+  .browse-bar{padding:18px 16px}
+  .browse-table tr.mo-head th{border-top:3px solid var(--brass);border-bottom:1px solid #E6D3A3;padding:10px 12px;border-radius:8px 8px 0 0}
+}
