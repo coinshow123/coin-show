@@ -1047,14 +1047,21 @@ ${fld('contact_phone', 'Your phone', { type: 'tel', attrs: 'autocomplete="tel"' 
   const orgRows = upcoming.filter(x => x.showId).map(x => [x.name, fmt(x).date, x.city, x.st, STATES[x.st] || '', x.venue || '', updateLink(x, p => ''), uploadLink(x, 'list', p => ''), uploadLink(x, 'application', p => ''), x.cancelled ? 1 : 0]);
   fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
   fs.writeFileSync(path.join(OUT, 'assets', 'org-shows.json'), JSON.stringify(orgRows));
-  const finder = h => `<section class="find-show card" id="find" aria-labelledby="h-find"><span class="find-k">Already on the site?</span><h2 id="h-find">Update a show that's already listed</h2>
-<p>Find your show to change its details, mark it cancelled, or send your dealer list or dealer application.</p>
-<ul class="find-can"><li>New dates or hours</li><li>New venue or address</li><li>Cancelled or postponed</li><li>Dealer list</li><li>Dealer application</li></ul>
+const howSteps = [['Send the form.', 'It takes about 3 minutes.'], ['We check it', 'with your club or website.'], ['Your show page goes live.', 'We email you the link.'], ['30 days before the show,', 'one email: still on?']];
+  const stepsHtml = cls => howSteps.map(([a, b], k) => `<div class="st"><b aria-hidden="true">${k + 1}</b><span><strong>${a}</strong> ${b}</span></div>`).join('');
+  const doors = h => `<div class="doors" id="doors">
+<section class="door door-new" id="door-new" aria-labelledby="h-new"><span class="find-k">Not on the site yet</span><h2 id="h-new">List a new show</h2><p>Add your show in about 3 minutes. It's free.</p>
+<ul class="ticks"><li>Its own page with map and calendar buttons</li><li>Found by ZIP code, state and date</li><li>Repeats monthly? Add all the dates at once</li></ul>
+<button type="button" class="btn btn-primary" id="start-new">Start listing →</button></section>
+<section class="door door-old" id="find" aria-labelledby="h-find"><span class="find-k">Already listed</span><h2 id="h-find">Update your show</h2><p>Change dates or hours, mark it cancelled, or send your dealer list.</p>
 <label class="near-label" for="find-q">Search by show name or city</label>
 <input type="search" id="find-q" placeholder="Like Kent Valley, or Sacramento" autocomplete="off" data-src="${h('assets/org-shows.json')}?v=${DATA_V}">
-<p class="small muted" id="find-count" aria-live="polite"></p>
-<ul class="find-list" id="find-results"></ul></section>`;
-  const uploadBlock = h => SITE_UPLOAD ? `<section class="block up-block" id="upload" aria-labelledby="h-upload" hidden><h2 id="h-upload">Send a dealer list or dealer application</h2>
+<ul class="find-can" id="find-can"><li>Dates &amp; hours</li><li>Venue</li><li>Cancelled</li><li>Dealer list</li><li>Dealer application</li></ul>
+<ul class="find-list" id="find-results"></ul>
+<p class="small muted" id="find-count" aria-live="polite"></p></section>
+</div>
+<section class="steps4" id="how-strip" aria-labelledby="h-how"><h2 id="h-how">How it works</h2>${stepsHtml()}</section>`;
+  const uploadBlock = h => SITE_UPLOAD ? `<section class="block up-block" id="upload" aria-labelledby="h-upload" hidden><div class="open-head"><h2 id="h-upload">Send a dealer list or dealer application</h2><a href="${h('submit/')}" class="back-link">← Back to List or update</a></div>
 <form class="sub-form up-form" id="upload-form" novalidate hidden data-post="${esc(SITE_UPLOAD.post)}" data-max="${Number(SITE_UPLOAD.maxMB) || 10}">
 <input type="hidden" name="show_id" id="up-show_id">
 <div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="company_site" tabindex="-1" autocomplete="off"></label></div>
@@ -1077,13 +1084,11 @@ ${fld('up_email', 'Your email', { req: 1, type: 'email', attrs: 'autocomplete="e
 </section>` : '';
   page({ p: 'submit/', active: 'submit', title: `List Your Coin Show Free | ${NAME}`,
     desc: `Coin clubs and show promoters: list or update your coin show free on ${NAME}, post your dealer list, and add our badge to your website.`,
-    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › List your show</p><h1 id="sub-h1">List your coin show free</h1><p class="lede" id="sub-lede">Tell collectors when and where your show is. They find it by ZIP code, state and date.</p></div>
-${finder(h)}
-<div class="two">
-<section class="block" id="form" aria-labelledby="form-h"><div class="form-head"><span class="find-k" id="form-k">Not on the site yet?</span><h2 id="form-h">List a new coin show</h2><p class="muted" id="form-lede">Fill in the form below. It takes about 3 minutes, and listing is free.</p></div>${(ownForm || iframeForm).replace('__SUBMIT__', h('submit/'))}</section>
-<aside class="stack">
-<div class="card"><h2>How it works</h2><ol class="how"><li>Send the form. It takes about 3 minutes.</li><li>We check it with your club or website.</li><li>Your show goes live with its own page, map and calendar button. We email you the link.</li><li>About 30 days before the show we ask one question: still on? One tap.</li></ol></div>
-</aside>
+    body: h => `<div class="page-head"><p class="crumb"><a href="${h('')}">Home</a> › List your show</p><h1 id="sub-h1">List or update your coin show</h1><p class="lede" id="sub-lede">Free for every club and promoter. Collectors find your show by ZIP code, state and date.</p></div>
+${doors(h)}
+<div class="two form-area" id="form-area" hidden>
+<section class="block" id="form" aria-labelledby="form-h" tabindex="-1"><div class="open-head"><h2 id="form-h">List a new show</h2><a href="#find" class="back-link" id="form-back">← Update a listed show instead</a></div>${(ownForm || iframeForm).replace('__SUBMIT__', h('submit/'))}</section>
+<aside class="stack"><div class="card"><h2>How it works</h2><div class="side-steps">${stepsHtml()}</div></div></aside>
 </div>
 ${uploadBlock(h)}
 <div class="two org-lower">
