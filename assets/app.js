@@ -266,11 +266,20 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
       var s = o.s, f = fmtDate(s.s, s.e);
       return '<tr><td class="c-date"><span class="d">' + esc(f[0]) + '</span><span class="dow">' + esc(f[1]) + '</span><span class="dtile" aria-hidden="true"><span class="tm">' + esc(f[2]) + '</span><span class="td">' + esc(f[3]) + '</span><span class="tw">' + esc(f[1]) + '</span></span></td>' +
         (withMiles ? '<td class="c-mi">' + Math.round(o.mi) + ' mi</td>' : '') + '<td class="c-st">' + esc(s.st) + '</td>' +
-        '<td class="c-name"><a href="' + esc(link(s.p)) + '">' + esc(s.n) + '</a><span class="sub">' + esc(s.c) + '<span class="st-in">, ' + esc(s.st) + '</span>' + (s.v ? ' · ' + esc(s.v) : '') + '</span></td></tr>';
+        '<td class="c-name"><a href="' + esc(link(s.p)) + '">' + esc(s.n) + '</a>' + (s.s <= WK[1] && s.e >= WK[0] ? '<span class="tag tag-wk">This weekend</span>' : '') + '<span class="sub">' + esc(s.c) + '<span class="st-in">, ' + esc(s.st) + '</span>' + (s.v ? ' · ' + esc(s.v) : '') + '</span></td></tr>';
     }).join('');
   }
-  function table(list, withMiles) {
-    return '<div class="table-wrap"><table class="shows"><thead><tr><th scope="col" class="c-date">Date</th>' + (withMiles ? '<th scope="col" class="c-mi">Distance</th>' : '') + '<th scope="col" class="c-st">State</th>' + '<th scope="col">Name of the coin show</th></tr></thead><tbody>' + rowsHTML(list, withMiles) + '</tbody></table></div>';
+  function monthRows(list, withMiles) {
+    var out = '', i = 0;
+    while (i < list.length) {
+      var d = new Date(list[i].s.s + 'T00:00:00'), k = d.getFullYear() * 12 + d.getMonth(), grp = [];
+      while (i < list.length) { var e = new Date(list[i].s.s + 'T00:00:00'); if (e.getFullYear() * 12 + e.getMonth() !== k) break; grp.push(list[i]); i++; }
+      out += '<tr class="mo-head"><th colspan="' + (withMiles ? 4 : 3) + '" scope="rowgroup">' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() + '<span>' + grp.length + (grp.length === 1 ? ' show' : ' shows') + '</span></th></tr>' + rowsHTML(grp, withMiles);
+    }
+    return out;
+  }
+  function table(list, withMiles, byMonth) {
+    return '<div class="table-wrap"><table class="shows' + (byMonth ? ' near-table' : '') + '"><thead><tr><th scope="col" class="c-date">Date</th>' + (withMiles ? '<th scope="col" class="c-mi">Distance</th>' : '') + '<th scope="col" class="c-st">State</th>' + '<th scope="col">Name of the coin show</th></tr></thead><tbody>' + (byMonth ? monthRows(list, withMiles) : rowsHTML(list, withMiles)) + '</tbody></table></div>';
   }
   function withDistance(list) {
     return list.map(function (s) { return { s: s, mi: here ? miles(here.lat, here.lon, s.la, s.lo) : 0 }; });
@@ -296,7 +305,7 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
   }
   function drawNear() {
     var radius = radIn ? radIn.value : 150;
-    out.innerHTML = '<p class="near-note">' + hits.length + ' show' + (hits.length === 1 ? '' : 's') + ' within ' + radius + ' miles, soonest first.</p>' + table(hits.slice(0, limit), true) +
+    out.innerHTML = '<p class="near-note">' + hits.length + ' show' + (hits.length === 1 ? '' : 's') + ' within ' + radius + ' miles, soonest first.</p>' + table(hits.slice(0, limit), true, true) +
       (hits.length > limit ? '<button type="button" class="btn btn-ghost more-btn" id="near-more">Show more (' + (hits.length - limit) + ' left)</button>' : '');
     var more = document.getElementById('near-more');
     if (more) more.addEventListener('click', function () { limit += 20; drawNear(); });
@@ -895,4 +904,11 @@ var DV = '?v=' + (document.documentElement.getAttribute('data-v') || '');
   document.querySelectorAll('[data-clear]').forEach(function (b) { b.addEventListener('click', reset); });
   pager.addEventListener('click', function (e) { var b = e.target.closest('[data-pg]'); if (!b || b.classList.contains('on')) return; page = parseInt(b.getAttribute('data-pg'), 10); draw(true); });
   draw(false);
+})();
+
+/* back-to-top button on long pages; calendar menu closes when you tap elsewhere */
+(function () {
+  var t = document.querySelector('.totop');
+  if (t) { var f = function () { t.hidden = window.scrollY < 1200; }; window.addEventListener('scroll', f, { passive: true }); f(); }
+  document.addEventListener('click', function (e) { document.querySelectorAll('details.cal-dd[open]').forEach(function (d) { if (!d.contains(e.target)) d.removeAttribute('open'); }); });
 })();
