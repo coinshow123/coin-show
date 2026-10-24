@@ -1,0 +1,1651 @@
+{
+ "ok": true,
+ "file": "balt26-r9.pdf",
+ "read": "2026-10-24T23:59:09.304Z",
+ "count": 234,
+ "needsLook": 234,
+ "headerFound": false,
+ "dealers": [
+  {
+   "name": "Acg Inc",
+   "table": "943",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Alex Perakis Coins and Currency",
+   "table": "334",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Alex Warfield",
+   "table": "651",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Allan Teal",
+   "table": "355",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Allen G. Berman, Professional Numismatist",
+   "table": "1045",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "David Allen",
+   "table": "755",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "American Commemorative Coins",
+   "table": "730",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "American Numismatic Association",
+   "table": "1214",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "American Numismatic Society",
+   "table": "1115",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Americana Currency",
+   "table": "923",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "ANACS",
+   "table": "1231",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Andrew Lustig Rare Coins",
+   "table": "649",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Angel Dee's Coins and Collectibles",
+   "table": "735",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Anthony Terranova, Inc.",
+   "table": "451",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "APMEX",
+   "table": "1037",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Argenteus Rare Coins",
+   "table": "1041",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "ARI Coins",
+   "table": "826",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Banknotes of the World",
+   "table": "1051",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Barber Coin Collectors Society",
+   "table": "1117",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "James Beach",
+   "table": "1142",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Michael Bezayiff",
+   "table": "1042",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Big Apple Coins",
+   "table": "948",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Bill Liatys",
+   "table": "1121",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Black Eagle Currency and Coin",
+   "table": "1035",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "BobPaulRareCoins.com",
+   "table": "835",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Bonanza Coins/Julian M. Leidman",
+   "table": "548",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Brian Timmons Rare Coin",
+   "table": "1127",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Michael Brooks",
+   "table": "1121",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Broward County Coins",
+   "table": "445",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "BullionPLUS / Dempsey & Baxter",
+   "table": "442",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "C4 Exhibit",
+   "table": "1115",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "C4 Gathering Area",
+   "table": "1015",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Cabbage Coins",
+   "table": "655",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "CAC Grading",
+   "table": "1223",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Capstone Acquisitions, LP",
+   "table": "750",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Carl Bombara Rare Currency",
+   "table": "449",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Carolina Rare Coins & Currency",
+   "table": "956",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "David D. Carruthers",
+   "table": "1128",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Carson City Joe",
+   "table": "730",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Cases and Lamps",
+   "table": "1256",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Charles Davis Numismatic Literature",
+   "table": "1061",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Charleston Rare Coins",
+   "table": "542",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Chase Rare Coins",
+   "table": "654",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Chesapeake Bay Rare Coins",
+   "table": "555",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Chris Imperato, Inc",
+   "table": "750",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Chris Pretsch",
+   "table": "1021",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Classic Coin Company",
+   "table": "644",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Classical Numismatic Group, Inc.",
+   "table": "1136",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Coin Exchange of Utah",
+   "table": "659",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Coin Maestro",
+   "table": "931",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Coin Rarities Online",
+   "table": "550",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Coins & Currency LLC",
+   "table": "1129",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Coins of Merritt",
+   "table": "255",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Coins, Cards & Collectibles",
+   "table": "241",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Coleman Foster",
+   "table": "243",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Collectors / PCGS",
+   "table": "1217",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Colonial Coins and Collectibles",
+   "table": "656",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Costello Rare Coins",
+   "table": "1156",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Crescent City Numismatics",
+   "table": "547",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Dalton Gold & Silver Exchange Inc.",
+   "table": "834",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Daniel Martime Jewelry",
+   "table": "1054",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "David Allen",
+   "table": "755",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "David D. Carruthers",
+   "table": "1128",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "David Gazzera Coins",
+   "table": "1044",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "David Kahn Rare Coins",
+   "table": "731",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Davis Investments",
+   "table": "348",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Del Parker Irish & Ancient Coins",
+   "table": "742",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Dennis King",
+   "table": "929",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Dlrc",
+   "table": "434",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Douglas Winter Numismatics",
+   "table": "556",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Sheridan Downey",
+   "table": "345",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Duke Numismatics",
+   "table": "547",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "DWN LLC",
+   "table": "649",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Eagle Eye Rare Coins",
+   "table": "740",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Eastern Numismatics",
+   "table": "754",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "eBay",
+   "table": "462",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Eckenrode Rare Coins",
+   "table": "251",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Educational Coin",
+   "table": "1137",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Edward J. Waddell, Ltd.",
+   "table": "1150",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Elden Electrical Services/Hospitality Network",
+   "table": "142",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Elizabeth Coggan Numismatics",
+   "table": "1048",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Executive Currency",
+   "table": "921",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Eye Appealing Coins",
+   "table": "727",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "FedEx",
+   "table": "138",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "First Choice Collectors",
+   "table": "821",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Fitzgerald Currency",
+   "table": "1128",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Flower Hill Coins & Collectibles",
+   "table": "341",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Coleman Foster",
+   "table": "243",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Frank Greenberg Inc.",
+   "table": "545",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Pierre Fricke",
+   "table": "1040",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Frisco Mint/Early Cents",
+   "table": "919",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "FRN, INC. / Matt King",
+   "table": "336",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "G. R. Tiso Numismatics",
+   "table": "631",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Gem BU Coins & Collectibles",
+   "table": "557",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Gerry Fortin Rare Coins",
+   "table": "954",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Gold Standard Auctions",
+   "table": "941",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Goldback",
+   "table": "456",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Golden Eagle",
+   "table": "1135",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Great Collections Coin Auctions",
+   "table": "741",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Greg Allen Coins",
+   "table": "1126",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Greysheet",
+   "table": "430",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Richard Gross",
+   "table": "454",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "John Gulde",
+   "table": "848",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Halumin",
+   "table": "561",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Harford Coin Co.",
+   "table": "1055",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Harlan J. Berk, Ltd",
+   "table": "1050",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Herakles Numismatics",
+   "table": "1140",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Heritage Rarities, Inc",
+   "table": "435",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Higleyville Coin",
+   "table": "951",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "History On Paper",
+   "table": "549",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Hlrc",
+   "table": "747",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Hughes Numismatics",
+   "table": "746",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Imperial Coin Exchange",
+   "table": "347",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "In God We Trust Coins",
+   "table": "446",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Integrity Coin Store",
+   "table": "826",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "J.E.L. Coins",
+   "table": "650",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "J.J. Teaparty, Inc.",
+   "table": "635",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "JAM Coins Inc",
+   "table": "849",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "James Beach",
+   "table": "1142",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "JMS Coins",
+   "table": "1027",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "John Gulde",
+   "table": "848",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "John Schuch RC",
+   "table": "344",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Stuart Jones",
+   "table": "1057",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "K&J Numismatics LLC",
+   "table": "828",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "KD Gold & Coin Exchange",
+   "table": "651",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Kelleher Auctions",
+   "table": "928",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Kevin Vinton",
+   "table": "1123",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Keystone Coin Company / Mark Chrans",
+   "table": "851",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Kids Nook",
+   "table": "148",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Killino’s Rare Coins",
+   "table": "823",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Dennis King",
+   "table": "929",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "King's Treasures",
+   "table": "922",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Kollectorz LLC",
+   "table": "818",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "L&T Collectibles",
+   "table": "1035",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Legend Numismatics",
+   "table": "646",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Stuart Levine",
+   "table": "551",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Lewis Rare Coins",
+   "table": "657",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Bill Liatys",
+   "table": "1121",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Littleton Coin Company",
+   "table": "961",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Long Island Coin",
+   "table": "1046",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Lopez & Associates",
+   "table": "737",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Main Line Coin",
+   "table": "351",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Mbrc",
+   "table": "457",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "McHenry Hobbies",
+   "table": "659",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Michael Bezayiff",
+   "table": "1042",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Michael Brooks",
+   "table": "1121",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Mid-American Rare Coin Galleries, Inc.",
+   "table": "645",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Mid-American Rare Coin Galleries, Inc.",
+   "table": "647",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Mike Olson, MCO Consultants",
+   "table": "836",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Mike's Coin Chest",
+   "table": "754",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Millers Mint Ltd.",
+   "table": "829",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Minshull Trading",
+   "table": "455",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "MintProducts Auctions",
+   "table": "657",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Money Metals Exchange LLC",
+   "table": "860",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "MyCoinWorx",
+   "table": "659",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Namchong Coin",
+   "table": "1043",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "New England Rarities",
+   "table": "1023",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "New Jersey Coppers",
+   "table": "1122",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "New Jersey Numismatics",
+   "table": "1120",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "New York Gold Mart Co.",
+   "table": "744",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "NGC",
+   "table": "1241",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "North Bay Rare Coin",
+   "table": "1134",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "North End Gold and Currency",
+   "table": "1144",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Northeast Numismatics",
+   "table": "842",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Northern Illinois Coin & Stamp Supply",
+   "table": "1149",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Northern Nevada Coin",
+   "table": "1028",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Numismatic Assets Inc.",
+   "table": "725",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Numismatic Rarities Exchange",
+   "table": "337",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Ocnumis LLC",
+   "table": "643",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Olevian Numismatic Rarities",
+   "table": "945",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "OwlBuy",
+   "table": "654",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Pacifica Trading",
+   "table": "950",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Palmyra Heritage, Inc.",
+   "table": "1049",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Paradime Coins",
+   "table": "721",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Park Avenue Numismatics",
+   "table": "846",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Park Coins",
+   "table": "554",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Paul Karon & Son",
+   "table": "1154",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Pierre Fricke",
+   "table": "1040",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Pikesville Jewelry",
+   "table": "955",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "PMG",
+   "table": "1237",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Pocket Change",
+   "table": "748",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Premier Rare Coins",
+   "table": "723",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Chris Pretsch",
+   "table": "1021",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Qian's Coins & Collectibles",
+   "table": "951",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Quality Rare Coins",
+   "table": "822",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Rarcoa, Inc",
+   "table": "1036",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Rarity7",
+   "table": "935",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Recruiting Plug",
+   "table": "357",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Tom Reynolds",
+   "table": "934",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Richard Gross",
+   "table": "454",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Rinkor Rare Coins, LLC",
+   "table": "450",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Robert Rhue Numismatics",
+   "table": "649",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Robs Coins & Currency",
+   "table": "247",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "S.G. Rare Coins, Inc.",
+   "table": "349",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Sabel Rarities",
+   "table": "1126",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Sarasota Rare Coin Gallery",
+   "table": "641",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Scarsdale Coin",
+   "table": "757",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Shepard",
+   "table": "140",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Sheridan Downey",
+   "table": "345",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "SightWhiteCoins.com",
+   "table": "837",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Sound Money Association of Maryland",
+   "table": "1113",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "South Border Coins",
+   "table": "1140",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Specialty Rarities, Inc.",
+   "table": "949",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Stack's Bowers Galleries",
+   "table": "535, 541",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Steinmetz Coins & Currency",
+   "table": "743",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Steven L Hoskin",
+   "table": "820",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Stone House Coin Shop",
+   "table": "719",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "STR Coins & Collectibles",
+   "table": "1123",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Stuart Jones",
+   "table": "1057",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Stuart Levine",
+   "table": "551",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Sullivan Numismatics, Inc",
+   "table": "745",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Tampa Bay Gold & Silver",
+   "table": "822",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Tangible Investments",
+   "table": "441",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Allen Teal",
+   "table": "355",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "The Family Trust Numismatics",
+   "table": "751",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "The Numismatic Financial Corp.",
+   "table": "340",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "The Reeded Edge, Inc.",
+   "table": "440",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Third Coast Supply",
+   "table": "335",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Tom Reynolds",
+   "table": "934",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Transition Metals LLC",
+   "table": "955",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Tri-State Rarities",
+   "table": "235",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Tudor Coins",
+   "table": "855",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Urban Mining House Enterprise",
+   "table": "821",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "US Coins and Jewelry",
+   "table": "1031",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Usarare Currency",
+   "table": "350",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "VCD Auctions",
+   "table": "824",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Vilmar Numismatics LLC",
+   "table": "1034",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Kevin Vinton",
+   "table": "1123",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Waddell, Edward J. Ltd.",
+   "table": "1150",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Alex Warfield",
+   "table": "651",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "West Coast Coins",
+   "table": "841",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Whitman Brands",
+   "table": "361",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Whitman Expo Info",
+   "table": "134",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  },
+  {
+   "name": "Wholesale Numismatics",
+   "table": "1131",
+   "city": "",
+   "state": "",
+   "flag": "check state and city"
+  }
+ ],
+ "skipped": [
+  "Company/Organization Booth Number"
+ ]
+}
