@@ -852,3 +852,11 @@ html{scroll-padding-top:84px}
 .cal-menu a:hover,.cal-menu a:focus-visible{background:var(--wine-tint)}
 .web-link{display:inline-block;margin-top:14px;color:var(--cream);font-weight:600;font-size:17px}
 .web-link:hover{color:#fff}
+
+/* Regional shows: green row and a solid green REGIONAL box (National stays gold) */
+.shows tr.is-regional{background:#EDF4EF!important}
+tr.is-regional .dtile{border-color:var(--wine)}
+tr.is-regional .dtile .tm{color:var(--wine)}
+.tag-regional{background:var(--wine);color:#fff}
+.show-head .tag-regional{background:#E3EEE8;color:var(--wine-dark)}
+@media (max-width:760px){.shows tr.is-regional{background:#EDF4EF!important;border-color:var(--wine)}}
