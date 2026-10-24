@@ -694,6 +694,7 @@ ${body(h)}
 </div>
 <p class="wrap copy">© ${D(todayISO).getUTCFullYear()} ${esc(NAME)}. Listings updated ${buildDateLong}.</p>
 </footer>
+<a class="totop" href="#content" hidden>↑ Top</a>
 <script src="${h('assets/app.js')}?v=${ASSET_V}" defer></script>
 </body>
 </html>`;
@@ -947,20 +948,20 @@ ${ended ? `<div class="notice notice-ended"><p><strong>This show has ended.</str
 <div class="show-head">
 <figure class="show-cover"><img src="${esc(coverSrc(s, h))}" alt="${s.photos.length ? esc(s.name) + ' photo' : ''}" width="640" height="360">${s.photos.length && s.photoCredit ? `<figcaption>Photo: ${esc(s.photoCredit)}</figcaption>` : ''}</figure>
 <div class="show-text">
-<div class="tags"><span class="tag tag-${s.tier}">${TIER_LABEL[s.tier]}</span>${s.featured ? '<span class="tag tag-feat">Featured</span>' : ''}${isFree(s) ? '<span class="tag tag-free">Free admission</span>' : ''}</div>
+<div class="tags"><span class="tag tag-${s.tier}">${TIER_LABEL[s.tier]}</span>${s.featured ? '<span class="tag tag-feat">Featured</span>' : ''}</div>
 <h1>${esc(s.name)}</h1>
 <p class="show-date">${esc(f.long)}</p>
 <p class="show-where">${esc(s.venue ? s.venue + ' · ' : '')}${esc(s.city)}, ${n}</p>
+${facts.length ? `<ul class="hero-facts" aria-label="Quick facts">${facts.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
 ${checkedLine(s)}
-<div class="actions">
-${off ? '' : `<a class="btn btn-light" href="${esc(googleCal(s))}" target="_blank" rel="noopener">Add to Google Calendar</a>
-<a class="btn btn-outline-light" href="event.ics" download="${esc(s.slug)}.ics">Apple or Outlook calendar</a>
-<a class="btn btn-outline-light" href="${esc(dir)}" target="_blank" rel="noopener">Get directions</a>`}
-${s.website ? `<a class="btn btn-outline-light" href="${esc(s.website)}" target="_blank" rel="noopener">Official website</a>` : ''}
+${off ? '' : `<div class="act2">
+<details class="cal-dd"><summary class="btn btn-gold">Add to calendar</summary>
+<div class="cal-menu"><a href="${esc(googleCal(s))}" target="_blank" rel="noopener">Google Calendar</a><a href="event.ics" download="${esc(s.slug)}.ics">Apple Calendar (iPhone, Mac)</a><a href="event.ics" download="${esc(s.slug)}.ics">Outlook</a></div></details>
+<a class="btn btn-outline-light" href="${esc(dir)}" target="_blank" rel="noopener">Directions</a>
+</div>`}
+${s.website ? `<a class="web-link" href="${esc(s.website)}" target="_blank" rel="noopener">Official website ↗</a>` : ''}
 </div>
 </div>
-</div>
-<ul class="facts" aria-label="Quick facts">${facts.map(x => `<li>${x}</li>`).join('')}</ul>
 <div class="show-body">
 
 <div class="pair">
