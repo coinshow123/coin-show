@@ -380,7 +380,7 @@ function linker(depth) {
 }
 
 /* ---------- pieces ---------- */
-const TIER_LABEL = { major: 'National', regional: 'State / regional', local: 'Local club', dealer: 'Dealers only' };
+const TIER_LABEL = { major: 'National', regional: 'Regional', local: 'Local club', dealer: 'Dealers only' };
 const isFree = s => /free/i.test(s.admission || '');
 
 function shortDate(s) {
@@ -395,8 +395,8 @@ function dateTile(s) {
 }
 function showRow(s, h) {
   const f = fmt(s);
-  const badges = (s.cancelled ? '<span class="tag tag-cancel">Cancelled</span>' : '') + (s.featured && !s.cancelled ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '') + (s.tier === 'major' ? '<span class="tag tag-major">National</span>' : '') + (isFree(s) ? '<span class="tag tag-free">Free</span>' : '') + ((s.dealers && s.dealers.length) || s.dealerListFile ? '<span class="tag tag-dl">Dealer list</span>' : '');
-  return `<tr data-s="${s.start}" data-e="${s.end}"${isFree(s) ? ' data-free="1"' : ''}${s.cancelled ? ' class="is-cancelled"' : s.tier === 'major' ? ' class="is-major"' : ''}>
+  const badges = (s.cancelled ? '<span class="tag tag-cancel">Cancelled</span>' : '') + (s.featured && !s.cancelled ? '<span class="tag tag-feat">Featured</span>' : '') + (s.tier === 'dealer' ? '<span class="tag tag-dealer">Dealers only</span>' : '') + (s.tier === 'major' ? '<span class="tag tag-major">National</span>' : '') + (s.tier === 'regional' && !s.cancelled ? '<span class="tag tag-regional">Regional</span>' : '') + (isFree(s) ? '<span class="tag tag-free">Free</span>' : '') + ((s.dealers && s.dealers.length) || s.dealerListFile ? '<span class="tag tag-dl">Dealer list</span>' : '');
+  return `<tr data-s="${s.start}" data-e="${s.end}"${isFree(s) ? ' data-free="1"' : ''}${s.cancelled ? ' class="is-cancelled"' : s.tier === 'major' ? ' class="is-major"' : s.tier === 'regional' ? ' class="is-regional"' : ''}>
 <td class="c-date"><span class="d">${esc(shortDate(s))}</span><span class="dow">${esc(f.dow)}</span>${dateTile(s)}</td>
 <td class="c-st">${s.st}</td>
 <td class="c-name"><a href="${h(s.path)}">${esc(s.name)}</a>${badges}<span class="sub">${esc(s.city)}<span class="st-in">, ${s.st}</span>${s.venue ? ' · ' + esc(s.venue) : ''}</span></td>
