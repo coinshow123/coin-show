@@ -1,0 +1,19 @@
+/* The Coin Calendar design tokens, recorded 2026-11-22.
+   Mirrors the :root block in assets/style.css. That file is the source of truth. */
+:root {
+  --ink: #14231D; --paper: #F7F5EF; --card: #FFFFFF;
+  --line: #DCE0D8; --line-soft: #ECEFE8; --line-mid: #C9CFC6; --line-strong: #98A39C;
+  --muted: #55635C; --soft: #EEF1EA; --zebra: #FAFAF6; --mint: #E9EFE7;
+  --wine: #1C5B45; --wine-dark: #134A37; --wine-tint: #E3EEE8;
+  --brass: #B8933F; --brass-dark: #7A5C1C; --brass-tint: #FBF3E0; --cream: #E8D9A8;
+  --on-ink-soft: #C9D2CD; --ok: #1C5B45; --err: #A3361B;
+  --regional-row: #EDF4EF; --tag-free: #E7F0E9;
+  --serif: "Literata", Georgia, "Times New Roman", serif;
+  --sans: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-tag: 4px; --radius-sm: 6px; --radius-control: 8px; --radius-card: 10px; --radius-panel: 14px; --radius-pill: 999px;
+  --shadow-hover: 0 4px 14px rgba(20,35,29,.12);
+  --shadow-pop: 0 12px 30px rgba(20,35,29,.18);
+  --shadow-float: 0 4px 14px rgba(20,35,29,.3);
+  --control-height: 52px; --control-height-sm: 44px; --control-height-lg: 58px;
+  --container: 1228px; --gutter: 24px; --gutter-phone: 16px;
+}
